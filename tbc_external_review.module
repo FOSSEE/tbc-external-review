@@ -26,7 +26,7 @@
             while($row = db_fetch_object($result)) {
                 $form[$row->id] = array(
                     "#type" => "checkbox",
-                    "#title" => t("{$row->book}"),
+                    "#title" => t("{$row->book} (by - {$row->author})"),
                 );
             }
 
