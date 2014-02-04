@@ -1,0 +1,102 @@
+<?php 
+    function tbc_external_review_menu() {
+        $items = array();
+        
+        $items["books_external_review"] = array(
+            "title" => "Books for External Review",
+            "page callback" => "tbc_external_review_all",
+            "access arguments" => array("access tbc_external_review"),
+            "type" => MENU_CALLBACK
+        );
+        return $items;
+    }
+
+    function tbc_external_review_perm() {
+        return array("access tbc_external_review");
+    }
+
+    function tbc_external_review_form($form_state) {
+        global $user;
+        $form = array();
+
+        /* create multiple checkboxes from database */
+        $result = remaining_books();
+        $num_rows = mysql_num_rows($result);
+        if($num_rows > 0) {
+            while($row = db_fetch_object($result)) {
+                $form[$row->id] = array(
+                    "#type" => "checkbox",
+                    "#title" => t("{$row->book}"),
+                );
+            }
+
+            $form["submit"] = array(
+                "#type" => "submit",
+                "#value" => "Submit",
+            );
+        } else {
+            drupal_set_message("<strong>All the available books have been selected. Please wait for more updates.</strong>", "status");
+        }
+        return $form;
+    }
+
+    function tbc_external_review_form_validate($form, &$form_state) {
+        $result = remaining_books();
+        $count = 0;
+        $selections = array();
+        while($row = db_fetch_object($result)) {
+            if($form_state["values"][$row->id] == 1) {
+                $count++;
+                array_push($selections, $row->id);
+            }
+        }
+        $remaining = remaining_books_count();
+        if($count > $remaining) {
+            form_set_error("", "You can select a maximum of <strong>{$remaining}</strong> books.");
+        } else {
+            $form_state["values"]["selections"] = $selections;
+        }
+    }
+    
+    function tbc_external_review_form_submit($form, $form_state) {
+        global $user;
+
+        $selections = $form_state["values"]["selections"];
+        foreach($selections as $selection) {
+            $query = "update {external_review_details} set uid = {$user->uid}, status = 1 where preference_id = {$selection}";
+            db_query($query);
+        }
+        drupal_set_message("<strong>Your selections have been updated sucessfully.</strong>", "status");
+    }
+
+    function tbc_external_review_all() {
+        global $user;
+        $page_content = "";
+
+        $remaining = remaining_books_count();
+        if($remaining > 0) {
+            $page_content = "You have <strong>{$remaining}</strong> selections remaining:";
+            $page_content .= drupal_get_form("tbc_external_review_form");
+        } else {
+            $page_content = "Thanks for your selections. We will get back to you soon.";
+        }
+        return $page_content;
+    }
+
+    /* helper functions */
+    function remaining_books_count() {
+        global $user;
+        /*finding how many books the user can select */
+        $query = "select count(*) from {external_review_details} where uid = {$user->uid}";
+        $result = db_query($query);
+        $row = db_fetch_array($result);
+        $remaining = 6 - $row["count(*)"];
+        return $remaining;
+    }
+
+    function remaining_books() {
+        $query = "select * from {textbook_companion_preference} where id in (select preference_id from {external_review_details} where status = 0)";
+        $result = db_query($query);
+        return $result;
+    }
+?>
