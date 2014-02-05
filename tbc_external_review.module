@@ -2,9 +2,15 @@
     function tbc_external_review_menu() {
         $items = array();
         
-        $items["books_external_review"] = array(
+        $items["tbc_external_review/books_available"] = array(
             "title" => "Books for External Review",
             "page callback" => "tbc_external_review_all",
+            "access arguments" => array("modify tbc_external_review"),
+            "type" => MENU_CALLBACK
+        );
+        $items["tbc_external_review/reviewer_profile"] = array(
+            "title" => "External Reviewer Profile",
+            "page callback" => "tbc_external_review_profile_all",
             "access arguments" => array("access tbc_external_review"),
             "type" => MENU_CALLBACK
         );
@@ -15,6 +21,12 @@
         return array("access tbc_external_review");
     }
 
+    /*
+        book selection form
+        {external_review_details} database required.
+        fields: preference_id, uid, status
+        status = 1 for selected.
+    */
     function tbc_external_review_form($form_state) {
         global $user;
         $form = array();
@@ -29,7 +41,6 @@
                     "#title" => t("{$row->book} (by - {$row->author})"),
                 );
             }
-
             $form["submit"] = array(
                 "#type" => "submit",
                 "#value" => "Submit",
@@ -58,7 +69,7 @@
         }
     }
     
-    function tbc_external_review_form_submit($form, $form_state) {
+    function tbc_external_review_form_submit($form, &$form_state) {
         global $user;
 
         $selections = $form_state["values"]["selections"];
@@ -98,5 +109,131 @@
         $query = "select * from {textbook_companion_preference} where id in (select preference_id from {external_review_details} where status = 0)";
         $result = db_query($query);
         return $result;
+    }
+
+    /*
+        external reviewer profile form,
+        save the data in {external_review_profile}
+    */
+    function tbc_external_review_profile_form() {
+        global $user;
+        $form = array();
+        /* populating the form with previous entry details if exists */
+        $query = "select * from {external_review_profile} where uid = %d";
+        $result = db_query($query, $user->uid);
+        $row = db_fetch_array($result);
+
+        $form["first_name"] = array(
+            "#type" => "textfield",
+            "#title" => t("First Name"),
+            "#required" => True,
+            "#default_value" => $row["first_name"],
+        );
+        $form["last_name"] = array(
+            "#type" => "textfield",
+            "#title" => t("Last Name"),
+            "#required" => True,
+            "#default_value" => $row["last_name"],
+        );
+        $form["designation"] = array(
+            "#type" => "textfield",
+            "#title" => t("Designation"),
+            "#required" => True,
+            "#default_value" => $row["designation"],
+        );
+        $form["university"] = array(
+            "#type" => "textfield",
+            "#title" => t("University/Institute"),
+            "#required" => True,
+            "#default_value" => $row["university"],
+        );
+        $form["phone"] = array(
+            "#type" => "textfield",
+            "#title" => t("Phone Number"),
+            "#required" => True,
+            "#default_value" => $row["phone"],
+        );
+        $form["email"] = array(
+            "#type" => "textfield",
+            "#title" => t("Email"),
+            "#required" => True,
+            "#default_value" => $row["email"],
+        );
+        $form["alt_email"] = array(
+            "#type" => "textfield",
+            "#title" => t("Alternate Email"),
+            "#default_value" => $row["alt_email"],
+        );
+        $form["address"] = array(
+            "#type" => "textarea",
+            "#title" => t("Postal Address"),
+            "#required" => True,
+            "#default_value" => $row["address"],
+        );
+        $form["description"] = array(
+            "#type" => "textarea",
+            "#title" => t("Description: (Give a short description about yourself)"),
+            "#required" => True,
+            "#default_value" => $row["description"],
+        );
+        $form["submit"] =array(
+            "#type" => "submit",
+            "#value" => "Update Profile",
+        );
+        return $form;
+    }
+
+    function tbc_external_review_profile_form_validate($form, &$form_state) {
+        /* for future validation */
+    }
+
+    function tbc_external_review_profile_form_submit($form, &$form_state) {
+        global $user;
+        /* setting $val as the new values array */
+        $val = array(); 
+        $val = $form_state["values"];
+
+        /* checking whether the user already has an entry */
+        $query = "select uid from {external_review_profile} where uid = %d";
+        $result = db_query($query, $user->uid);
+        $has_entry = mysql_num_rows($result);
+        
+        if($has_entry) {
+            /* update the existing entry */
+            $query = "update {external_review_profile} 
+                    set 
+                    first_name = '%s', last_name = '%s', designation = '%s', 
+                    university = '%s', phone = '%s', email = '%s', alt_email = '%s',
+                    address = '%s', description = '%s' 
+                    where uid = %d
+            ";
+            $result = db_query(
+                $query, $val["first_name"], $val["last_name"], $val["designation"], $val["university"],
+                $val["phone"], $val["email"], $val["alt_email"], $val["address"], $val["description"],
+                $user->uid
+            );
+        } else {
+            /* create a new entry */
+            $query = "insert into {external_review_profile} 
+                    (uid, first_name, last_name, designation, university, phone, email, alt_email, address, description) 
+                    values
+                    (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+            ";
+            $result = db_query(
+                $query, $user->uid, $val["first_name"], $val["last_name"], $val["designation"], $val["university"],
+                $val["phone"], $val["email"], $val["alt_email"], $val["address"], $val["description"]
+            );
+        }
+        if($result) {
+            drupal_set_message("Profile updated successfully. Thank you.", "status");
+        } else {
+            drupal_set_message("Database updation failed. Please contact support.", "error");
+        }
+    }
+
+    function tbc_external_review_profile_all() {
+        $page_content = "";
+        $page_content .= drupal_get_form("tbc_external_review_profile_form");
+        return $page_content;
     }
 ?>
