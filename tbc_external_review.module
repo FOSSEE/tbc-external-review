@@ -172,7 +172,9 @@
         );
         $form["description"] = array(
             "#type" => "textarea",
-            "#title" => t("Description: (Give a short description about yourself)"),
+            "#title" => t("Description: 
+                (Research interest / Level of expertise in Scilab / Teaching Expertise )
+            "),
             "#required" => True,
             "#default_value" => $row["description"],
         );
