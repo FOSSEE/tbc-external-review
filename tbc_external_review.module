@@ -5,7 +5,7 @@
         $items["tbc_external_review/books_available"] = array(
             "title" => "Books for External Review",
             "page callback" => "tbc_external_review_all",
-            "access arguments" => array("modify tbc_external_review"),
+            "access arguments" => array("access tbc_external_review"),
             "type" => MENU_CALLBACK
         );
         $items["tbc_external_review/reviewer_profile"] = array(
@@ -38,7 +38,7 @@
             while($row = db_fetch_object($result)) {
                 $form[$row->id] = array(
                     "#type" => "checkbox",
-                    "#title" => t("{$row->book} (by - {$row->author})"),
+                    "#title" => t("{$row->book} by {$row->author} ( ed: {$row->edition}, pub: {$row->year})"),
                 );
             }
             $form["submit"] = array(
@@ -184,7 +184,25 @@
     }
 
     function tbc_external_review_profile_form_validate($form, &$form_state) {
-        /* for future validation */
+        /* validating phone */
+        if(!preg_match("/^[0-9]+$/", $form_state["values"]["phone"])) {
+            form_set_error("phone", "Please enter a valid Phone Number, only (0-9) allowed.");
+        }
+        /*validating email */
+        if(!valid_email_address($form_state["values"]["email"])) {
+            form_set_error("email", "Please enter a valid Email address");
+        }
+        if($form_state["values"]["alt_email"] && !valid_email_address($form_state["values"]["alt_email"])) {
+            form_set_error("alt_email", "Please enter a valid Alternate Email address" );
+        }
+        /* validating address */
+        if(strlen($form_state["values"]["address"]) < 20) {
+            form_set_error("address", "Please enter a proper Postal Address.");
+        }
+        /* validating description */
+        if(strlen($form_state["values"]["description"]) < 25) {
+            form_set_error("description", "Please enter a longer description.");
+        }
     }
 
     function tbc_external_review_profile_form_submit($form, &$form_state) {
@@ -229,6 +247,7 @@
         } else {
             drupal_set_message("Database updation failed. Please contact support.", "error");
         }
+        drupal_goto('tbc_external_review');
     }
 
     function tbc_external_review_profile_all() {
