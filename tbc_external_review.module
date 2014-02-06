@@ -89,7 +89,7 @@
             $page_content = "You have <strong>{$remaining}</strong> selections remaining:";
             $page_content .= drupal_get_form("tbc_external_review_form");
         } else {
-            $page_content = "Thanks for your selections. We will get back to you soon.";
+            $page_content = "Thanks for your selections.";
         }
         return $page_content;
     }
