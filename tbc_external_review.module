@@ -14,11 +14,25 @@
             "access arguments" => array("access tbc_external_review"),
             "type" => MENU_CALLBACK
         );
+        $items["tbc_external_review/view_reviewers"] = array(
+            "title" => "External Reviewers",
+            "page callback" => "tbc_external_review_view_all",
+            "access arguments" => array("administer tbc_external_review"),
+            "type" => MENU_CALLBACK
+        );
+        $items["tbc_external_review/reviewer_selections"] = array(
+            "title" => "Reviewer Selections",
+            "page callback" => "tbc_external_review_reviewer_selections_all",
+            "access arguments" => array("administer tbc_external_review"),
+            "type" => MENU_CALLBACK
+        );
         return $items;
     }
 
     function tbc_external_review_perm() {
-        return array("access tbc_external_review");
+        return array(
+            "access tbc_external_review", "administer tbc_external_review",
+        );
     }
 
     /*
@@ -71,7 +85,7 @@
     
     function tbc_external_review_form_submit($form, &$form_state) {
         global $user;
-
+        
         $selections = $form_state["values"]["selections"];
         foreach($selections as $selection) {
             $query = "update {external_review_details} set uid = {$user->uid}, status = 1 where preference_id = {$selection}";
@@ -83,7 +97,7 @@
     function tbc_external_review_all() {
         global $user;
         $page_content = "";
-
+        
         $remaining = remaining_books_count();
         if($remaining > 0) {
             $page_content = "You have <strong>{$remaining}</strong> selections remaining:";
@@ -122,7 +136,7 @@
         $query = "select * from {external_review_profile} where uid = %d";
         $result = db_query($query, $user->uid);
         $row = db_fetch_array($result);
-
+        
         $form["first_name"] = array(
             "#type" => "textfield",
             "#title" => t("First Name"),
@@ -212,7 +226,7 @@
         /* setting $val as the new values array */
         $val = array(); 
         $val = $form_state["values"];
-
+        
         /* checking whether the user already has an entry */
         $query = "select uid from {external_review_profile} where uid = %d";
         $result = db_query($query, $user->uid);
@@ -255,6 +269,44 @@
     function tbc_external_review_profile_all() {
         $page_content = "";
         $page_content .= drupal_get_form("tbc_external_review_profile_form");
+        return $page_content;
+    }
+
+    function tbc_external_review_view_all() {
+        $page_content = "";
+        $query = "select * from {external_review_profile}";
+        $result = db_query($query);
+        
+        $page_content .= "<ul>";
+        while($row = db_fetch_object($result)) {
+            $page_content .= "<li>";
+            $page_content .= l("{$row->first_name} {$row->last_name}", "tbc_external_review/reviewer_selections/{$row->uid}");
+            $page_content .= "</li>";
+        }
+        $page_content .= "</ul>";
+        return $page_content;
+    }
+
+    function tbc_external_review_reviewer_selections_all($uid=0) {
+        $page_content = "";
+        
+        $query = "SELECT * FROM {external_review_profile} WHERE uid = %d";
+        $result = db_query($query, $uid);
+        $row = db_fetch_object($result);
+        $page_content .= "Books selected by <strong>{$row->first_name} {$row->last_name}</strong>";
+        $query = "
+            SELECT * FROM {textbook_companion_preference} WHERE id IN 
+            (SELECT preference_id FROM {external_review_details} WHERE uid = %d)
+        ";
+        $result = db_query($query, $uid);
+        
+        $page_content .= "<ol>";
+        while($row = db_fetch_object($result)) {
+            $page_content .= "<li>";
+            $page_content .= "{$row->book}";
+            $page_content .= "</li>";
+        }
+        $page_content .= "</ol>";
         return $page_content;
     }
 ?>
