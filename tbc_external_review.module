@@ -3,25 +3,25 @@
         $items = array();
         
         $items["tbc_external_review/books_available"] = array(
-            "title" => "Books for External Review",
+            "title" => "ER Books Available",
             "page callback" => "tbc_external_review_all",
             "access arguments" => array("access tbc_external_review"),
             "type" => MENU_CALLBACK
         );
         $items["tbc_external_review/reviewer_profile"] = array(
-            "title" => "External Reviewer Profile",
+            "title" => "TBC External Reviewer Profile",
             "page callback" => "tbc_external_review_profile_all",
             "access arguments" => array("access tbc_external_review"),
             "type" => MENU_CALLBACK
         );
         $items["tbc_external_review/view_reviewers"] = array(
-            "title" => "External Reviewers",
+            "title" => "ER List Reviewers",
             "page callback" => "tbc_external_review_view_all",
             "access arguments" => array("administer tbc_external_review"),
-            "type" => MENU_CALLBACK
+            "type" =>  MENU_NORMAL_ITEM
         );
         $items["tbc_external_review/reviewer_selections"] = array(
-            "title" => "Reviewer Selections",
+            "title" => "TBC External Reviewer Selections",
             "page callback" => "tbc_external_review_reviewer_selections_all",
             "access arguments" => array("administer tbc_external_review"),
             "type" => MENU_CALLBACK
@@ -44,7 +44,7 @@
     function tbc_external_review_form($form_state) {
         global $user;
         $form = array();
-
+        
         /* create multiple checkboxes from database */
         $result = remaining_books();
         $num_rows = mysql_num_rows($result);
