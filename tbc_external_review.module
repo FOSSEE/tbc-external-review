@@ -310,7 +310,7 @@
         $page_content .= "<ol>";
         while($row = db_fetch_object($result)) {
             $page_content .= "<li>";
-            $page_content .= "{$row->book}";
+            $page_content .= t("{$row->book} by {$row->author} ( ed: {$row->edition}, pub: {$row->year})");
             $page_content .= "</li>";
         }
         $page_content .= "</ol>";
