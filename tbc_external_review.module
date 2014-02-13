@@ -26,12 +26,19 @@
             "access arguments" => array("administer tbc_external_review"),
             "type" => MENU_CALLBACK
         );
+        $items["tbc_external_review/selected_books"] = array(
+            "title" => "Books for External Review",
+            "page callback" => "tbc_external_review_selected_books_all",
+            "access arguments" => array("download tbc_external_review"),
+            "type" => MENU_CALLBACK
+        );
         return $items;
     }
 
     function tbc_external_review_perm() {
         return array(
             "access tbc_external_review", "administer tbc_external_review",
+            "download tbc_external_review"
         );
     }
 
@@ -304,6 +311,26 @@
         while($row = db_fetch_object($result)) {
             $page_content .= "<li>";
             $page_content .= "{$row->book}";
+            $page_content .= "</li>";
+        }
+        $page_content .= "</ol>";
+        return $page_content;
+    }
+
+    function tbc_external_review_selected_books_all() {
+        global $user;
+        $page_content = "";
+        $page_content .= "- Please click the books to <b>download</b> them.";
+        $query = "
+            SELECT * FROM {textbook_companion_preference} WHERE id IN 
+            (SELECT preference_id FROM {external_review_details} WHERE uid = %d)
+        ";
+        $result = db_query($query, $user->uid);
+        
+        $page_content .= "<ol>";
+        while($row = db_fetch_object($result)) {
+            $page_content .= "<li>";
+            $page_content .= l(t("{$row->book} by {$row->author} ( ed: {$row->edition}, pub: {$row->year})"), "full_download/book/{$row->id}");
             $page_content .= "</li>";
         }
         $page_content .= "</ol>";
