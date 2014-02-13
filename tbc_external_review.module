@@ -330,7 +330,7 @@
         $page_content .= "<ol>";
         while($row = db_fetch_object($result)) {
             $page_content .= "<li>";
-            $page_content .= l(t("{$row->book} by {$row->author} ( ed: {$row->edition}, pub: {$row->year})"), "full_download/book/{$row->id}");
+            $page_content .= l(t("{$row->book} by {$row->author} ( ed: {$row->edition}, pub: {$row->year})"), "full_download_external/book/{$row->id}");
             $page_content .= "</li>";
         }
         $page_content .= "</ol>";
