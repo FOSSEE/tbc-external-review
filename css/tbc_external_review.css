@@ -1,0 +1,15 @@
+.form-radios .form-item {
+    display:inline;
+}
+#comment-form-wrapper #edit-chapter-wrapper,
+#comment-form-wrapper #edit-example-wrapper,
+#comment-form-wrapper #edit-submit,
+#comment-form-wrapper #comment-error-wrapper,
+#ajax-loader {
+    display: none;
+}
+.status {
+    padding: 5px;
+    background: lightgreen;
+    border: 2px solid green;
+}

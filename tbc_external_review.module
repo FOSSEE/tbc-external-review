@@ -32,6 +32,17 @@
             "access arguments" => array("download tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
         );
+        $items["tbc_external_review/comments"] = array(
+            "title" => "External Review Comments",
+            "page callback" => "tbc_external_review_comments_all",
+            "access arguments" => array("download tbc_external_review"),
+            "type" => MENU_NORMAL_ITEM
+        );
+        $items["tbc_external_review/ajax"] = array(
+            "page callback" => "tbc_external_review_ajax",
+            "access arguments" => array("download tbc_external_review"),
+            "type" => MENU_CALLBACK
+        );
         return $items;
     }
 
@@ -335,5 +346,198 @@
         }
         $page_content .= "</ol>";
         return $page_content;
+    }
+    
+    function tbc_external_review_comments_all() {
+        global $user;
+        $page_content = "";
+        $page_content = "* Use this form to notify only examples that have errors.";
+        $page_content .= drupal_get_form("tbc_external_review_comment_form");
+        return $page_content;
+    }
+
+    function tbc_external_review_comment_form($form_state) {
+        $form = array();
+        global $user;
+        global $base_url;
+        $form["wrapper"] = array(
+            "#type" => "fieldset",
+            "#title" => t("
+                Reviewer comments
+                <img id='ajax-loader' src='" . "{$base_url}/" . drupal_get_path("module", "tbc_external_review") ."/img/throbber.gif'>
+            "),
+            "#prefix" => "<div id='comment-form-wrapper'>",
+            "#suffix" => "</div>",
+        );
+        $form["wrapper"]["book"] = array(
+            "#type" => "select",
+            "#title" => t("Please select the book."),
+            "#options" => _get_books($user->uid),
+        );
+        $form["wrapper"]["chapter"] = array(
+            "#type" => "select",
+            "#title" => t("Please select the chapter"),
+        );
+        $form["wrapper"]["example"] = array(
+            "#type" => "select",
+            "#title" => t("Please select the example"),
+        );
+        $form["wrapper"]["error"] = array(
+            "#type" => "fieldset",
+            "#title" => "Types of errors found",
+            "#prefix" => "<div id='comment-error-wrapper'>",
+            "#suffix" => "</div>",
+        );
+        $form["wrapper"]["error"]["ncf"] = array(
+            "#type" => "radios",
+            "#title" => t("Naming convention followed? (Checklist point 1, 2 and 4)"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["eit"] = array(
+            "#type" => "radios",
+            "#title" => t("Error in textbook mentioned as comment?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["axl"] = array(
+            "#type" => "radios",
+            "#title" => t("Axes labeled ?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["sua"] = array(
+            "#type" => "radios",
+            "#title" => t("Symbols used are appropiate?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["sfu"] = array(
+            "#type" => "radios",
+            "#title" => t("Scilab functions used?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["sum"] = array(
+            "#type" => "radios",
+            "#title" => t("Solved using Matlab in textbook?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["aci"] = array(
+            "#type" => "radios",
+            "#title" => t("Appropriate comments included as mentioned in checklist point 7 ?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["auu"] = array(
+            "#type" => "radios",
+            "#title" => t("Appropriate units used as given in the textbook?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["teo"] = array(
+            "#type" => "radios",
+            "#title" => t("Typographical errors in output and/or comments?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["amt"] = array(
+            "#type" => "radios",
+            "#title" => t("Answers matching with the textbook?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+        );
+        $form["wrapper"]["error"]["comment"] = array(
+            "#type" => "textarea",
+            "#title" => t("Other commment ? (if any)"),
+        );
+        $form["wrapper"]["submit"] = array(
+            "#type" => "submit",
+            "#value" => "Submit Comment"
+        );
+        return $form;
+    }
+    
+    function tbc_external_review_comment_form_validate($form, &$form_state) {
+        // for future use
+    }
+
+    function tbc_external_review_comment_form_submit($form, &$form_state) {
+        global $user;
+        $v = $form_state["values"];
+        $query = "insert into {external_review_comments}
+            (uid, preference_id, chapter_id, example_id, ncf, eit, axl, sua, sfu, sum, aci, auu, teo, amt, comment)
+            values
+            (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, '%s')
+        ";
+        $result = db_query(
+            $query, $user->uid, $v["book"], $v["chapter"], $v["example"], $v["ncf"], $v["eit"], $v["axl"], $v["sua"], $v["sfu"], $v["sum"], $v["aci"], $v["auu"], $v["teo"], $v["amt"], $v["comment"]
+        );
+        drupal_set_message(t("Comment submited successfully"), "status");
+    }
+
+    /* Ajax Calls */
+    function tbc_external_review_ajax($item, $key) {
+        $data = "";
+        if($item == "book" && $key) {
+            $query = "select * from {textbook_companion_chapter} where preference_id = %d order by number";
+            $result = db_query($query, $key);
+            
+            $data .= "<option value='0'>Please select the chapter.</option>";
+            while($row = db_fetch_object($result)) {
+                $data .= "<option value='{$row->id}'>{$row->number} {$row->name}</option>";
+            }
+        } else if($item == "chapter" && $key) {
+            $query = "select * from {textbook_companion_example} where chapter_id = %d order by number";
+            $result = db_query($query, $key);
+            
+            $data .= "<option value='0'>Please select the example.</option>";
+            while($row = db_fetch_object($result)) {
+                $data .= "<option value='{$row->id}'>{$row->number} {$row->caption}</option>";
+            }
+        }
+        echo $data;
+        exit();
+    }
+
+    /* Comment form helper functions */
+    function _get_books($uid) {
+        $query = "select * from {textbook_companion_preference} where id in 
+            (select preference_id from {external_review_details} where uid = %d)
+        ";
+        $result = db_query($query, $uid);
+        
+        $books = array();
+        $books[0] = "Please select a book";
+        while($row = db_fetch_object($result)) {
+            $books[$row->id] = $row->book;
+        }
+        return $books;
+    }
+
+    function tbc_external_review_init() {
+        drupal_add_css(drupal_get_path("module", "tbc_external_review") . "/css/tbc_external_review.css");
+        drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/tbc_external_review.js");
     }
 ?>
