@@ -38,6 +38,18 @@
             "access arguments" => array("download tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
         );
+        $items["tbc_external_review/view_comments"] = array(
+            "title" => "External Review Comments",
+            "page callback" => "tbc_external_review_view_comments_all",
+            "access arguments" => array("download tbc_external_review"),
+            "type" => MENU_NORMAL_ITEM
+        );
+        $items["tbc_external_review/status"] = array(
+            "title" => "External Review Status",
+            "page callback" => "tbc_external_review_status_all",
+            "access arguments" => array("administer tbc_external_review"),
+            "type" => MENU_NORMAL_ITEM
+        );
         $items["tbc_external_review/ajax"] = array(
             "page callback" => "tbc_external_review_ajax",
             "access arguments" => array("download tbc_external_review"),
@@ -534,6 +546,52 @@
             $books[$row->id] = $row->book;
         }
         return $books;
+    }
+
+    function tbc_external_review_status_all() {
+        $page_content = "";
+        $query = "
+            SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
+            ON (tcp.id = erd.preference_id AND erd.status=1) INNER JOIN users ON erd.uid = users.uid 
+        ";
+        $result = db_query($query);
+        $headers = array(
+            "Book", 
+            "Author",
+            "User",
+        );
+        $rows = array();
+        while($row = db_fetch_object($result)) {
+            $item = array(
+                "{$row->book}",
+                "{$row->author}",
+                "{$row->name}",
+            );
+            array_push($rows, $item);
+        }
+        $page_content .= "<h2><u>Selected Books</u></h2>";
+        $page_content .= theme("table", $headers, $rows);
+        
+        $query = "
+            SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
+            ON (tcp.id = erd.preference_id AND erd.status=0) INNER JOIN users ON erd.uid = users.uid 
+        ";
+        $result = db_query($query);
+        $headers = array(
+            "Book", 
+            "Author",
+        );
+        $rows = array();
+        while($row = db_fetch_object($result)) {
+            $item = array(
+                "{$row->book}",
+                "{$row->author}",
+            );
+            array_push($rows, $item);
+        }
+        $page_content .= "<h2><u>Books Not Selected</u></h2>";
+        $page_content .= theme("table", $headers, $rows);
+        return $page_content;
     }
 
     function tbc_external_review_init() {
