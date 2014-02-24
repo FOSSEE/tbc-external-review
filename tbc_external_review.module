@@ -552,7 +552,8 @@
         $page_content = "";
         $query = "
             SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
-            ON (tcp.id = erd.preference_id AND erd.status=1) INNER JOIN users ON erd.uid = users.uid 
+            ON (tcp.id = erd.preference_id AND erd.status=1) INNER JOIN users ON (erd.uid = users.uid)
+            ORDER BY users.name
         ";
         $result = db_query($query);
         $headers = array(
@@ -574,7 +575,7 @@
         
         $query = "
             SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
-            ON (tcp.id = erd.preference_id AND erd.status=0) INNER JOIN users ON erd.uid = users.uid 
+            ON (tcp.id = erd.preference_id AND erd.status=0) INNER JOIN users ON (erd.uid = users.uid)
         ";
         $result = db_query($query);
         $headers = array(
