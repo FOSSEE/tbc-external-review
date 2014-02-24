@@ -45,7 +45,7 @@
             "type" => MENU_NORMAL_ITEM
         );
         $items["tbc_external_review/status"] = array(
-            "title" => "External Review Status",
+            "title" => "ER View Status",
             "page callback" => "tbc_external_review_status_all",
             "access arguments" => array("administer tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
