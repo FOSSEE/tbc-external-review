@@ -13,3 +13,15 @@
     background: lightgreen;
     border: 2px solid green;
 }
+#lightbox-wrapper {
+    background: #ffffff;
+    padding: 25px;
+}
+#lightbox-wrapper table tr {
+    border-bottom: 1px solid #cccccc;
+    padding: 10px 0;
+}
+
+#lightbox-wrapper table tr:hover {
+    background: #f3f3f3;
+}
