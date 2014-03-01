@@ -27,7 +27,7 @@
             "type" => MENU_CALLBACK
         );
         $items["tbc_external_review/selected_books"] = array(
-            "title" => "Books for External Review",
+            "title" => "External Review Books",
             "page callback" => "tbc_external_review_selected_books_all",
             "access arguments" => array("download tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
