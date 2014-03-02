@@ -365,20 +365,27 @@
     function tbc_external_review_selected_books_all() {
         global $user;
         $page_content = "";
-        $page_content .= "- Please click the books to <b>download</b> them.";
         $query = "
             SELECT * FROM {textbook_companion_preference} WHERE id IN 
             (SELECT preference_id FROM {external_review_details} WHERE uid = %d)
         ";
         $result = db_query($query, $user->uid);
         
-        $page_content .= "<ol>";
+        $headers = array(
+            "Book", "Author",
+            "Edition", "Action",
+        );
+        $rows = array();
         while($row = db_fetch_object($result)) {
-            $page_content .= "<li>";
-            $page_content .= l(t("{$row->book} by {$row->author} ( ed: {$row->edition}, pub: {$row->year})"), "full_download_external/book/{$row->id}");
-            $page_content .= "</li>";
+            $item = array(
+                "{$row->book}",
+                "{$row->author}",
+                "{$row->edition}",
+                l(t("Download [.zip]"), "full_download_external/book/{$row->id}")
+            );
+            array_push($rows, $item);
         }
-        $page_content .= "</ol>";
+        $page_content .= theme("table", $headers, $rows);
         return $page_content;
     }
     
