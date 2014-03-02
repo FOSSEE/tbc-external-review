@@ -16,7 +16,7 @@
         );
         $items["tbc_external_review/view_reviewers"] = array(
             "title" => "ER List Reviewers",
-            "page callback" => "tbc_external_review_view_all",
+            "page callback" => "tbc_external_review_view_reviewers_all",
             "access arguments" => array("administer tbc_external_review"),
             "type" =>  MENU_NORMAL_ITEM
         );
@@ -32,8 +32,14 @@
             "access arguments" => array("download tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
         );
+        $items["tbc_external_review/status"] = array(
+            "title" => "External Review Status",
+            "page callback" => "tbc_external_review_status_all",
+            "access arguments" => array("download tbc_external_review"),
+            "type" => MENU_NORMAL_ITEM
+        );
         $items["tbc_external_review/comments"] = array(
-            "title" => "Comments",
+            "title" => "External Review Comments",
             "page callback" => "tbc_external_review_comments_all",
             "access arguments" => array("download tbc_external_review"),
             "access callback" => TRUE,
@@ -60,9 +66,9 @@
             "access arguments" => array("administer tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
         );
-        $items["tbc_external_review/status"] = array(
+        $items["tbc_external_review/view_status"] = array(
             "title" => "ER View Status",
-            "page callback" => "tbc_external_review_status_all",
+            "page callback" => "tbc_external_review_view_status_all",
             "access arguments" => array("administer tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
         );
@@ -140,7 +146,7 @@
         
         $selections = $form_state["values"]["selections"];
         foreach($selections as $selection) {
-            $query = "update {external_review_details} set uid = {$user->uid}, status = 1 where preference_id = {$selection}";
+            $query = "update {external_review_details} set uid = {$user->uid}, status = 1, review = 1  where preference_id = {$selection}";
             db_query($query);
         }
         drupal_set_message("<strong>Your selections have been updated sucessfully.</strong>", "status");
@@ -175,6 +181,29 @@
         $query = "select * from {textbook_companion_preference} where id in (select preference_id from {external_review_details} where status = 0)";
         $result = db_query($query);
         return $result;
+    }
+
+    function suffix($number) {
+        /* 
+            considering number will be not more than 10 
+            eg: 11th, 21st - Not required
+        */
+        $output = "";                                                               
+        switch ($number) {                                                             
+            case "1":                                                               
+                $output = $number. "st";                                              
+                break;                                                              
+            case "2":                                                               
+                $output = $number. "nd";                                              
+                break;                                                              
+            case "3":                                                               
+                $output = $number. "rd";                                              
+                break;                                                              
+            default:                                                                
+                $output = $number. "th";                                              
+                break;                                                              
+        }                                                                           
+        return $output;
     }
 
     /*
@@ -324,7 +353,7 @@
         return $page_content;
     }
 
-    function tbc_external_review_view_all() {
+    function tbc_external_review_view_reviewers_all() {
         $page_content = "";
         $query = "select * from {external_review_profile}";
         $result = db_query($query);
@@ -672,7 +701,7 @@
         return $books;
     }
 
-    function tbc_external_review_status_all() {
+    function tbc_external_review_view_status_all() {
         $page_content = "";
         $query = "
             SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
@@ -681,15 +710,15 @@
         ";
         $result = db_query($query);
         $headers = array(
-            "Book", 
-            "Author",
-            "User",
+            "Book", "Review No.", 
+            "Status", "Reviewer",
         );
         $rows = array();
         while($row = db_fetch_object($result)) {
             $item = array(
-                "{$row->book}",
-                "{$row->author}",
+                "{$row->book}<br><em>by {$row->author}</em>",
+                suffix($row->review),
+                ($row->completed?"Completed":"Ongoing"),
                 "{$row->name}",
             );
             array_push($rows, $item);
@@ -833,6 +862,72 @@
         drupal_goto("manage_proposal/all");
     }
 
+    function tbc_external_review_status_all($action="", $preference_id=0, $confirm="") {
+        global $user;
+        $page_content = "";
+        if($action == "complete" && $preference_id) {
+            if($confirm == "yes"){
+                $query = "
+                    UPDATE external_review_details
+                    SET completed = 1
+                    WHERE preference_id = %d
+                ";
+                $result = db_query($query, $preference_id);
+                
+                if(!$result) {
+                    drupal_set_message("Updation failed.", "error");
+                } else {
+                    drupal_set_message("Book marked as completed successfully.");
+                    /* send mail here */
+                }
+                drupal_goto("tbc_external_review/status");
+            } else {
+                $query = "
+                    SELECT erd.review, pre.id, pre.book, pre.author FROM external_review_details erd
+                    LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
+                    WHERE erd.preference_id = %d
+                ";
+                $result = db_query($query, $preference_id);
+                $row = db_fetch_object($result);
+                
+                $page_content .= "<strong>Are you sure you want to mark the book completed ?</strong><br>";
+                $page_content .= "Book: {$row->book} <br>";
+                $page_content .= "Author: {$row->author} <br>";
+                $page_content .= l("Yes", "tbc_external_review/status/complete/{$row->id}/yes") . " | ";
+                $page_content .= l("Cancel", "tbc_external_review/status/");
+            }
+        } else {
+            $query = "
+                SELECT erd.*, pre.* FROM external_review_details erd
+                LEFT JOIN textbook_companion_preference pre ON pre.id = erd.preference_id
+                WHERE erd.uid = %d
+                ORDER BY pre.book
+            ";
+            $result = db_query($query, $user->uid);
+            
+            $headers = array(
+                "Book", "Review No.",
+                "Action"
+            );
+            $rows = array();
+            while($row = db_fetch_object($result)) {
+                $item = array(
+                    "{$row->book}<br>by <em>{$row->author}</em>",
+                    suffix($row->review),
+                );
+                if($row->completed){
+                    array_push($item, "Completed");
+                } else {
+                    array_push(
+                        $item, l("Mark Completed", "tbc_external_review/status/complete/".$row->preference_id)
+                    );
+                }
+                array_push($rows, $item);
+            }
+            $page_content .= theme("table", $headers, $rows);
+        }
+        return $page_content;
+    }
 
     function tbc_external_review_init() {
         drupal_add_css(drupal_get_path("module", "tbc_external_review") . "/css/tbc_external_review.css");
