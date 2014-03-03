@@ -42,21 +42,20 @@
             "title" => "External Review Comments",
             "page callback" => "tbc_external_review_comments_all",
             "access arguments" => array("download tbc_external_review"),
-            "access callback" => TRUE,
             "weight" => 30,
             "type" => MENU_NORMAL_ITEM,
         );
         $items["tbc_external_review/comments/new"] = array(
             "title" => "New Comment",
             "page callback" => "tbc_external_review_comments_all",
-            "access callback" => TRUE,
+            "access arguments" => array("download tbc_external_review"),
             "weight" => 1,
             "type" => MENU_DEFAULT_LOCAL_TASK,
         );
         $items["tbc_external_review/comments/view"] = array(
             "title" => "View Comments",
             "page callback" => "tbc_external_review_comments_view_all",
-            "access callback" => TRUE,
+            "access arguments" => array("download tbc_external_review"),
             "weight" => 2,
             "type" => MENU_LOCAL_TASK,
         );
@@ -70,21 +69,20 @@
             "title" => "ER View Status",
             "page callback" => "tbc_external_review_view_status_all",
             "access arguments" => array("administer tbc_external_review"),
-            "access callback" => TRUE,
             "weight" => 30,
             "type" => MENU_NORMAL_ITEM
         );
         $items["tbc_external_review/view_status/all"] = array(
             "title" => "All",
             "page callback" => "tbc_external_review_view_status_all",
-            "access callback" => TRUE,
+            "access arguments" => array("administer tbc_external_review"),
             "weight" => 1,
             "type" => MENU_DEFAULT_LOCAL_TASK,
         );
         $items["tbc_external_review/view_status/recent"] = array(
             "title" => "Recently Completed",
             "page callback" => "tbc_external_review_view_status_recent_all",
-            "access callback" => TRUE,
+            "access arguments" => array("administer tbc_external_review"),
             "weight" => 2,
             "type" => MENU_LOCAL_TASK,
         );
