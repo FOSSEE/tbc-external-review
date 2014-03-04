@@ -949,7 +949,6 @@
                     $review_no = suffix($row->review);
                     /* sending mail */
                     $to = "{$user->mail}";
-                    $from = "textbook@scilab.in";
                     $subject = "External Review - Textbook Companion Project";
                     $body = "
                         Dear {$user->name} <br><br>
@@ -964,10 +963,10 @@
                     ";
                     $message = array(
                         "to" => $to,
-                        "from" => $from,
                         "subject" => $subject,
                         "body" => $body,
                         "headers" => array(
+                            "From" => "textbook@scilab.in",
                             "Bcc" => "mukulrkulkarni@gmail.com, lavitha89@gmail.com, rush2jrp@gmail.com",
                             "Content-Type" => "text/html; charset=UTF-8; format=flowed"
                         )
