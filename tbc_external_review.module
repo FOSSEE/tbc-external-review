@@ -94,10 +94,7 @@
         );
         $items["tbc_external_review/ajax"] = array(
             "page callback" => "tbc_external_review_ajax",
-            "access arguments" => array(
-                "download tbc_external_review",
-                "administer tbc_external_review"
-            ),
+            "access callback" => TRUE,
             "type" => MENU_CALLBACK
         );
         $items["tbc_external_review/test"] = array(
