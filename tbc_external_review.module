@@ -824,7 +824,7 @@
             $result = db_query($query, $preference_id);
             $headers = array(
                 "Chapter", "Example",
-                "Time", "Action"
+                "Time", "Score", "Action"
             );
             $rows = array();
             while($row = db_fetch_object($result)) {
@@ -837,11 +837,26 @@
                         "data-comment" => "{$row->id}",
                     )
                 );
+                
+                /* scoring comments */
+                $score = 0;
+                $row->ncf?666:$score++;
+                $row->eit?$score++:666;
+                $row->axl?666:$score++;
+                $row->sua?666:$score++;
+                $row->sfu?666:$score++;
+                $row->sum?$score++:666;
+                $row->aci?666:$score++;
+                $row->auu?666:$score++;
+                $row->teo?$score++:666;
+                $row->amt?666:$score++;
+                
                 $item = array(
                     "data" => array(
                         "{$row->chapter}",
                         "{$row->example}",
                         "{$row->time}",
+                        "{$score}",
                         l("View", "", $options),
                     ),
                 );
