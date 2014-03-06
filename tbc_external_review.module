@@ -838,11 +838,17 @@
                     )
                 );
                 $item = array(
-                    "{$row->chapter}",
-                    "{$row->example}",
-                    "{$row->time}",
-                    l("View", "", $options),
+                    "data" => array(
+                        "{$row->chapter}",
+                        "{$row->example}",
+                        "{$row->time}",
+                        l("View", "", $options),
+                    ),
                 );
+                if($row->sfu == 0 || $row->sum == 1 || $row->amt == 0) {
+                    $error_class = array("class" => "error-comment");
+                    $item = array_merge($item, $error_class);
+                }
                 array_push($rows, $item);
             }
             $page_content .= theme("table", $headers, $rows);
