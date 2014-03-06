@@ -845,7 +845,7 @@
                         l("View", "", $options),
                     ),
                 );
-                if($row->sfu == 0 || $row->sum == 1 || $row->amt == 0) {
+                if($row->sfu == 1 || $row->sum == 0 || $row->amt == 1) {
                     $error_class = array("class" => "error-comment");
                     $item = array_merge($item, $error_class);
                 }
