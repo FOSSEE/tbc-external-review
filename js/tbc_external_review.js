@@ -2,6 +2,7 @@ $(document).ready(function() {
 
     var basePath = Drupal.settings.basePath;
     var modPath = basePath + "tbc_external_review/";
+    
     /* for "tbc_external_review/comments" page */
     $book = $("#edit-book");
     $chapter = $("#edit-chapter");
@@ -57,6 +58,31 @@ $(document).ready(function() {
                 $lightbox_wrapper.lightbox_me({
                     centered: true
                 });
+            },
+        });
+        e.preventDefault();
+    });
+
+    /* hide/unhide comments */
+    $hide_show= $(".hide-show");
+    
+    $hide_show.click(function(e) {
+        var comment_id = $(this).attr("data-comment");
+        $t = $(this);
+        $.ajax({
+            url: modPath + "ajax/hide-show/" + comment_id,
+            type: "GET",
+            dataType: "html",
+            success: function(data) {
+                $tr = $t.parents("tr:first");
+                if($tr.hasClass("dull")) {
+                    $t.parents("tr:first").removeClass("dull");
+                    $t.html("Hide");
+                } else {
+                    $t.parents("tr:first").addClass("dull");
+                    $t.html("Show");
+                }
+                console.log(data);
             },
         });
         e.preventDefault();

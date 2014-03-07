@@ -681,7 +681,7 @@
             while($row = db_fetch_object($result)) {
                 $data .= "<option value='{$row->id}'>{$row->number} {$row->caption}</option>";
             }
-        } else if($item = "comment" && $key) {
+        } else if($item == "comment" && $key) {
             $query = "
                 SELECT * FROM external_review_comments erc 
                 LEFT JOIN textbook_companion_example_files tcef 
@@ -711,6 +711,14 @@
             $data .= "</table>";
             $data .= "<textarea style='width:100%; height:200px; background:#fafafa' readonly>";
             $data .= "{$example}</textarea>";
+        } else if($item == "hide-show" && $key) {
+            $query = "
+                UPDATE external_review_comments
+                SET hidden = !hidden
+                WHERE id = %d
+            ";
+            $result = db_query($query, $key);
+            $data .= $key;
         }
         echo $data;
         exit();
@@ -819,7 +827,7 @@
                 LEFT JOIN textbook_companion_chapter cha ON cha.id = erc.chapter_id 
                 LEFT JOIN textbook_companion_example exa ON exa.id = erc.example_id
                 WHERE erc.preference_id = %d
-                ORDER BY erc.time DESC
+                ORDER BY erc.chapter_id, erc.example_id
             ";
             $result = db_query($query, $preference_id);
             $headers = array(
@@ -828,12 +836,21 @@
             );
             $rows = array();
             while($row = db_fetch_object($result)) {
-                $options = array(
+                $view_options = array(
                     /* # linking in drupal l() */
                     "fragment" => " ",
                     "external" => TRUE,
                     "attributes" => array(
                         "class" => "view-comment",
+                        "data-comment" => "{$row->id}",
+                    )
+                );
+                $hide_options= array(
+                    /* # linking in drupal l() */
+                    "fragment" => " ",
+                    "external" => TRUE,
+                    "attributes" => array(
+                        "class" => "hide-show",
                         "data-comment" => "{$row->id}",
                     )
                 );
@@ -857,12 +874,23 @@
                         "{$row->example}",
                         "{$row->time}",
                         "{$score}",
-                        l("View", "", $options),
+                        l("View", "", $view_options),
                     ),
                 );
                 if($row->sfu == 1 || $row->sum == 0 || $row->amt == 1) {
                     $error_class = array("class" => "error-comment");
                     $item = array_merge($item, $error_class);
+                }
+                if($row->hidden) {
+                    $item["class"] .= " dull";
+                }
+                /* hide/unhide link */
+                end($item["data"]);
+                $key= key($item["data"]);
+                if($row->hidden) {
+                    $item["data"][$key] .= " | " . l("Show", "", $hide_options);
+                } else {
+                    $item["data"][$key] .= " | " . l("Hide", "", $hide_options);
                 }
                 array_push($rows, $item);
             }
@@ -1047,6 +1075,7 @@
     function tbc_external_review_test_all() {
         global $user;
         $page_content = "";
+        
         /* sending mail */
         $to = "rush2jrp@gmail.com";
         $from = "jayaram@iitb.ac.in";
