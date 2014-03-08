@@ -933,7 +933,7 @@
         } else {
             /* displaying the list of books */
             $query = "
-                SELECT DISTINCT erc.preference_id, pre.book, pre.author, usr_con.name AS contributor, usr_ext.name AS reviewer, erd.mail
+                SELECT DISTINCT erc.preference_id, pre.book, pre.author, usr_con.name AS contributor, usr_ext.name AS reviewer, erd.sent
                 FROM external_review_comments erc
                 LEFT JOIN textbook_companion_preference pre ON erc.preference_id = pre.id
                 LEFT JOIN textbook_companion_proposal pro ON pre.proposal_id = pro.id
