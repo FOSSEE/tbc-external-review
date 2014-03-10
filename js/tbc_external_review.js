@@ -88,6 +88,30 @@ $(document).ready(function() {
         e.preventDefault();
     });
 
+    /* toggle hide-show */
+    $toggler = $(".toggle-hide-show");
+    $toggler.click(function() {
+        var preference_id = $(this).attr("data-preference");
+        
+        $.ajax({
+            url: modPath + "ajax/toggle/" + preference_id,
+            type: "GET",
+            success: function(data) {
+                $tr = $("tr");
+                $tr.each(function() {
+                    if($(this).hasClass("dull")) {
+                        $(this).removeClass("dull");
+                        $(this).find(".hide-show").html("Hide");
+                    } else {
+                        $(this).addClass("dull");
+                        $(this).find(".hide-show").html("Show");
+                        $("thead tr").removeClass("dull");
+                    }
+                });
+            }
+        });
+    });
+
     $(document).ajaxStart(function() {
         $ajax_loader.show();
     });

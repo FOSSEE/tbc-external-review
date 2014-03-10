@@ -752,6 +752,14 @@
             ";
             $result = db_query($query, $key);
             $data .= $key;
+        } else if($item == "toggle" && $key) {
+            $query = "
+                UPDATE external_review_comments
+                SET hidden = !hidden
+                WHERE preference_id = %d
+            ";
+            $result = db_query($query, $key);
+            $data .= $key;
         }
         echo $data;
         exit();
@@ -854,6 +862,8 @@
         $page_content = "";
         if($preference_id) {
             global $user;
+            $page_content .= "<span class='toggle-hide-show' data-preference='{$preference_id}'>Toggle Hide-Show</span>";
+            $page_content .= "<div class='clearfix'></div>";
             /* displaying comments of a particular book */
             $query = "
                 SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
