@@ -756,7 +756,11 @@
             $query = "
                 UPDATE external_review_comments
                 SET hidden = !hidden
-                WHERE preference_id = %d
+                WHERE preference_id = %d AND (
+                    sfu != 1 AND
+                    sum != 0 AND
+                    amt != 1
+                )
             ";
             $result = db_query($query, $key);
             $data .= $key;

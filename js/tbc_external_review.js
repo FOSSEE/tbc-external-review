@@ -99,13 +99,15 @@ $(document).ready(function() {
             success: function(data) {
                 $tr = $("tr");
                 $tr.each(function() {
-                    if($(this).hasClass("dull")) {
-                        $(this).removeClass("dull");
-                        $(this).find(".hide-show").html("Hide");
-                    } else {
-                        $(this).addClass("dull");
-                        $(this).find(".hide-show").html("Show");
-                        $("thead tr").removeClass("dull");
+                    if(!$(this).hasClass("error-comment")) {
+                        if($(this).hasClass("dull")) {
+                            $(this).removeClass("dull");
+                            $(this).find(".hide-show").html("Hide");
+                        } else {
+                            $(this).addClass("dull");
+                            $(this).find(".hide-show").html("Show");
+                            $("thead tr").removeClass("dull");
+                        }
                     }
                 });
             }
