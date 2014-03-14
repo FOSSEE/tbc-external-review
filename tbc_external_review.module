@@ -947,7 +947,7 @@
         } else {
             /* displaying the list of books */
             $query = "
-                SELECT DISTINCT erc.preference_id, pre.book, pre.author, usr_con.name AS contributor, usr_ext.name AS reviewer, erd.sent
+                SELECT DISTINCT erc.preference_id, pre.book, pre.author, usr_con.name AS contributor, usr_ext.name AS reviewer, erd.*
                 FROM external_review_comments erc
                 LEFT JOIN textbook_companion_preference pre ON erc.preference_id = pre.id
                 LEFT JOIN textbook_companion_proposal pro ON pre.proposal_id = pro.id
@@ -958,13 +958,16 @@
             ";
             $result = db_query($query);
             $headers = array(
-                "Book", "Contributor",
+                "Book", "Review No.",
+                "Status", "Contributor",
                 "Reviewer", "Action"
             );
             $rows = array();
             while($row = db_fetch_object($result)) {
                 $item = array(
                     "{$row->book}<br><em>by {$row->author}</em>",
+                    suffix($row->review),
+                    ($row->completed?"Completed":"Ongoing"),
                     "{$row->contributor}",
                     "{$row->reviewer}",
                     l("View", "tbc_external_review/manage_comments/" . $row->preference_id)
