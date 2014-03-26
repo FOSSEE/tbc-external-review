@@ -1146,6 +1146,61 @@
         drupal_goto("manage_proposal/all");
     }
 
+    function tbc_external_review_completion_form($form, $preference_id=10) {
+        function _missed_chapter() {
+            $chapter = array();
+            $chapter[0] = "Select Chapter";
+            $chapter = array_merge($chapter, range(1,50));
+            return $chapter;
+        }
+        function _missed_example() {
+            $example = array();
+            $example[0] = "Select Example";
+            $example = array_merge($example, range(1,50));
+            return $example;
+        }
+        $form = array();
+        $form["#action"] = url("tbc_external_review/status/complete/{$preference_id}/yes");
+        $form["wrapper"] = array(
+            "#prefix" => "<div  id='review-completion-form'>",
+            "#suffix" => "</div>"
+        );
+        $form["wrapper"]["missing"] = array(
+            "#title" => "Are all examples from the book attempted by the contributor?",
+            "#type" => "radios",
+            "#options" => array(
+                t("Yes"),
+                t("No")
+            ),
+        );
+        $form["wrapper"]["list"] = array(
+            "#prefix" => "<div id='missed-list'>",
+            "#suffix" => "</div>",
+        );
+        $form["wrapper"]["list"]["missed_chapter"] = array(
+            "#title" => "Chapter",
+            "#type" => "select",
+            "#options" => _missed_chapter()
+        );
+        $form["wrapper"]["list"]["missed_example"] = array(
+            "#title" => "Example",
+            "#type" => "select",
+            "#options" => _missed_example(),
+        );
+        $form["wrapper"]["more"] = array(
+            "#type" => "markup",
+            "#value" => "<a id='more' href='#'>Add More</a><br><br><hr>",
+        );
+        $form["wrapper"]["submit"] = array(
+            "#type" => "submit",
+            "#value" => "Submit"
+        );
+        $form["wrapper"]["cancel"] = array(
+            "#type" => "button",
+            "#value" => "Cancel",
+        );
+        return $form;
+    }
     function tbc_external_review_status_all($action="", $preference_id=0, $confirm="") {
         global $user;
         $page_content = "";
@@ -1156,6 +1211,19 @@
                     SET completed = 1
                     WHERE preference_id = %d
                 ";
+                $result = db_query($query, $preference_id);
+                
+                $query = "
+                    INSERT INTO external_review_missed
+                    (preference_id, uid, chapter, example)
+                    VALUES
+                    ({$preference_id}, {$user->uid}, {$_REQUEST['missed_chapter']}, {$_REQUEST['missed_example']})
+                ";
+                $i = 0;
+                foreach($_REQUEST["missed_chapters"] as $chapter){
+                    $query .= ", ({$preference_id}, {$user->uid}, {$chapter}, {$_REQUEST['missed_examples'][$i]})";
+                    $i++;
+                }
                 $result = db_query($query, $preference_id);
                 
                 if(!$result) {
@@ -1211,8 +1279,7 @@
                 $page_content .= "<strong>Are you sure you want to mark the book completed ?</strong><br>";
                 $page_content .= "Book: {$row->book} <br>";
                 $page_content .= "Author: {$row->author} <br>";
-                $page_content .= l("Yes", "tbc_external_review/status/complete/{$row->id}/yes") . " | ";
-                $page_content .= l("Cancel", "tbc_external_review/status/");
+                $page_content .= drupal_get_form("tbc_external_review_completion_form", $preference_id);
             }
         } else {
             $query = "
@@ -1246,6 +1313,7 @@
         }
         return $page_content;
     }
+    
 
     function tbc_external_review_test_all() {
         $page_content = "";
@@ -1254,6 +1322,8 @@
 
     function tbc_external_review_init() {
         drupal_add_css(drupal_get_path("module", "tbc_external_review") . "/css/tbc_external_review.css");
+        drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery-1.11.0.min.js");
+        drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery-noconfilct.js");
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery.lightbox_me.js");
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/tbc_external_review.js");
     }

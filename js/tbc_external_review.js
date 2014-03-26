@@ -114,6 +114,40 @@ $(document).ready(function() {
         });
     });
 
+    var count = 1;
+    $more = $jq("#review-completion-form #more");
+    $missed = $jq("#review-completion-form #missed-list");
+
+    /* show/hide missed-list */
+    $jq("#edit-missing-0").click(function() {
+        $more.hide();
+        $missed.hide();
+    });
+    $jq("#edit-missing-1").click(function() {
+        $more.show();
+        $missed.show();
+    });
+    /* review complete form  */
+    $more.click(function(e) {
+        $dupe = $missed.clone();
+        $dupe.find("select[name='missed_chapter']").attr("id", "missed_chapter_" + count);
+        $dupe.find("select[name='missed_chapter']").attr("name", "missed_chapters[]");
+        $dupe.find("select[name='missed_example']").attr("id", "missed_example_" + count);
+        $dupe.find("select[name='missed_example']").attr("name", "missed_examples[]");
+        $dupe.insertBefore($more);
+        $dupe.append("<a href='#' class='delete-missed'>Delete</a>");
+        e.preventDefault();
+    });
+
+    $jq("#review-completion-form").on("click", ".delete-missed", function(e) {
+        $jq(this).closest("#missed-list").remove();
+        e.preventDefault();
+    });
+
+    $jq("#edit-cancel").click(function(e) {
+        window.location = modPath + "status";
+        e.preventDefault();
+    });
     $(document).ajaxStart(function() {
         $ajax_loader.show();
     });

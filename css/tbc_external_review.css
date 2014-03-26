@@ -55,3 +55,12 @@
     color: #ffffff;
     font-weight: bold;
 }
+#review-completion-form #edit-missed-chapter-wrapper,
+#review-completion-form #edit-missed-example-wrapper {
+    display: inline-block;
+    margin-right: 25px;
+}
+#review-completion-form #more,
+#review-completion-form #missed-list {
+    display: none;
+}
