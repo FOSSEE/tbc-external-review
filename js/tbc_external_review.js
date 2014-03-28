@@ -1,3 +1,16 @@
+// Javascript format string
+// First, checks if it isn't implemented yet.
+if (!String.prototype.format) {
+  String.prototype.format = function() {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function(match, number) { 
+      return typeof args[number] != 'undefined'
+        ? args[number]
+        : match
+      ;
+    });
+  };
+}
 $(document).ready(function() {
 
     var basePath = Drupal.settings.basePath;
@@ -122,25 +135,36 @@ $(document).ready(function() {
     $jq("#edit-missing-0").click(function() {
         $more.hide();
         $missed.hide();
+        $jq("div").filter(function() {
+            return this.id.match(/missed-list-.*/);
+        }).hide();
     });
     $jq("#edit-missing-1").click(function() {
         $more.show();
         $missed.show();
+        $jq("div").filter(function() {
+            return this.id.match(/missed-list-.*/);
+        }).show();
     });
+
     /* review complete form  */
     $more.click(function(e) {
         $dupe = $missed.clone();
+        $dupe.attr("id", "missed-list-" + count);
         $dupe.find("select[name='missed_chapter']").attr("id", "missed_chapter_" + count);
         $dupe.find("select[name='missed_chapter']").attr("name", "missed_chapters[]");
         $dupe.find("select[name='missed_example']").attr("id", "missed_example_" + count);
         $dupe.find("select[name='missed_example']").attr("name", "missed_examples[]");
         $dupe.insertBefore($more);
-        $dupe.append("<a href='#' class='delete-missed'>Delete</a>");
+        $dupe.append("<a href='#' class='delete-missed' data-target='{0}'>Delete</a>".format(count));
+        count++;
         e.preventDefault();
     });
 
     $jq("#review-completion-form").on("click", ".delete-missed", function(e) {
-        $jq(this).closest("#missed-list").remove();
+        var target = $jq(this).data("target");
+        $("#review-completion-form #missed-list-" + target).remove();
+        count--;
         e.preventDefault();
     });
 

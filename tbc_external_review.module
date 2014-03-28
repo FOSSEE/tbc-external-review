@@ -71,23 +71,23 @@
             "access arguments" => array("administer tbc_external_review"),
             "type" => MENU_CALLBACK
         );
-        $items["tbc_external_review/view_status"] = array(
+        $items["tbc_external_review/manage_status"] = array(
             "title" => "ER View Status",
-            "page callback" => "tbc_external_review_view_status_all",
+            "page callback" => "tbc_external_review_manage_status_all",
             "access arguments" => array("administer tbc_external_review"),
             "weight" => 30,
             "type" => MENU_NORMAL_ITEM
         );
-        $items["tbc_external_review/view_status/all"] = array(
+        $items["tbc_external_review/manage_status/all"] = array(
             "title" => "All",
-            "page callback" => "tbc_external_review_view_status_all",
+            "page callback" => "tbc_external_review_manage_status_all",
             "access arguments" => array("administer tbc_external_review"),
             "weight" => 1,
             "type" => MENU_DEFAULT_LOCAL_TASK,
         );
-        $items["tbc_external_review/view_status/recent"] = array(
+        $items["tbc_external_review/manage_status/recent"] = array(
             "title" => "Recently Completed",
-            "page callback" => "tbc_external_review_view_status_recent_all",
+            "page callback" => "tbc_external_review_manage_status_recent_all",
             "access arguments" => array("administer tbc_external_review"),
             "weight" => 2,
             "type" => MENU_LOCAL_TASK,
@@ -674,9 +674,9 @@
     function tbc_external_review_comment_form_submit($form, &$form_state) {
         global $user;
         $v = $form_state["values"];
-        $query = "insert into {external_review_comments}
+        $query = "INSERT INTO {external_review_comments}
             (uid, preference_id, chapter_id, example_id, ncf, eit, axl, sua, sfu, sum, aci, auu, teo, amt, comment)
-            values
+            VALUES
             (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, '%s')
         ";
         $result = db_query(
@@ -784,7 +784,7 @@
         return $books;
     }
 
-    function tbc_external_review_view_status_all() {
+    function tbc_external_review_manage_status_all() {
        $page_content = "";
         $query = "
             SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
@@ -831,7 +831,7 @@
         return $page_content;
     }
 
-    function tbc_external_review_view_status_recent_all() {
+    function tbc_external_review_manage_status_recent_all() {
         $page_content = "";
         $query = "
             SELECT * FROM external_review_details erd
@@ -1156,7 +1156,7 @@
         function _missed_example() {
             $example = array();
             $example[0] = "Select Example";
-            $example = array_merge($example, range(1,50));
+            $example = array_merge($example, range(1,80));
             return $example;
         }
         $form = array();
@@ -1219,12 +1219,15 @@
                     VALUES
                     ({$preference_id}, {$user->uid}, {$_REQUEST['missed_chapter']}, {$_REQUEST['missed_example']})
                 ";
-                $i = 0;
-                foreach($_REQUEST["missed_chapters"] as $chapter){
-                    $query .= ", ({$preference_id}, {$user->uid}, {$chapter}, {$_REQUEST['missed_examples'][$i]})";
-                    $i++;
+                
+                if ($_REQUEST["missing"]) {
+                    $i = 0;
+                    foreach($_REQUEST["missed_chapters"] as $chapter){
+                        $query .= ", ({$preference_id}, {$user->uid}, {$chapter}, {$_REQUEST['missed_examples'][$i]})";
+                        $i++;
+                    }
+                    $result = db_query($query, $preference_id);
                 }
-                $result = db_query($query, $preference_id);
                 
                 if(!$result) {
                     drupal_set_message("Updation failed.", "error");
@@ -1313,7 +1316,6 @@
         }
         return $page_content;
     }
-    
 
     function tbc_external_review_test_all() {
         $page_content = "";
