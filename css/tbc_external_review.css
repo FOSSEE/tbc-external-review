@@ -64,3 +64,25 @@
 #review-completion-form #missed-list {
     display: none;
 }
+.review-links {
+    margin: 0 10px;
+    padding: 2px 5px;
+    color: #333333;
+    border: 1px solid #333333;
+    -webkit-transition: background-color  .5s ease-out 0s;
+       -moz-transition: background-color  .5s ease-out 0s;
+         -o-transition: background-color  .5s ease-out 0s;
+            transition: background-color  .5s ease-out 0s;
+    -webkit-transition: color  .5s ease-out .1s;
+       -moz-transition: color  .5s ease-out .1s;
+         -o-transition: color  .5s ease-out .1s;
+            transition: color  .5s ease-out .1s;
+}
+.review-links:hover {
+    color: #ffffff;
+    background: #333333;
+}
+.review-links.active{
+    background: #333333;
+    color: #ffffff;
+}
