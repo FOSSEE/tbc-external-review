@@ -867,7 +867,7 @@
                     The updated code for the book can be downloaded here: <b>{$download_link}</b><br><br>
                     You can start giving comments on error codes for this review.<br>
                     Please make sure to mark the review as completed again after you finish this review.<br><br>
-                    Thank you for your patience. <br><br>
+                    Thank you for your contribution. <br><br>
                     Best Wishes, <br>
                     Scilab.in
                 ";
@@ -1412,7 +1412,7 @@
                         Author: <b>{$row->author}</b><br>
                         Review: <b>{$review_no}</b> <br><br>
                         We will review your comments soon.<br>
-                        Thank you for your patience. <br><br>
+                        Thank you for your contribution. <br><br>
                         Best Wishes, <br>
                         Scilab.in
                     ";
