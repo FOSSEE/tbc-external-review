@@ -851,7 +851,7 @@
                 t("Ongoing"),
                 t("Completed")
             ),
-            "#default_value" => 0
+            "#default_value" => $row->completed
         );
         $form["wrapper"]["preference_id"] = array(
             "#type" => "hidden",
