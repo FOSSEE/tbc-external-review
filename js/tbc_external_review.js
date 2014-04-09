@@ -168,8 +168,12 @@ $(document).ready(function() {
         e.preventDefault();
     });
 
-    $jq("#edit-cancel").click(function(e) {
+    $jq("#review-completion-form #edit-cancel").click(function(e) {
         window.location = modPath + "status";
+        e.preventDefault();
+    });
+    $jq("#status-edit-form #edit-cancel").click(function(e) {
+        window.location = modPath + "manage_status";
         e.preventDefault();
     });
     $(document).ajaxStart(function() {

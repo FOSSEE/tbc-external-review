@@ -487,10 +487,7 @@
         $query = "
             SELECT DISTINCT(review) FROM external_review_comments
             WHERE preference_id = %d
-            ORDER BY review DESC
-        ";
-        $result = db_query($query, $preference_id);
-        $tmp = $review; // for active class in case of 0
+            ORDER BY review DESC "; $result = db_query($query, $preference_id); $tmp = $review; // for active class in case of 0
         while($row = db_fetch_object($result)) {
             $option["attributes"]["class"] = "review-links";
             if($review == $row->review) {
@@ -828,6 +825,65 @@
         return $books;
     }
 
+    function tbc_external_review_status_edit_form($form_state, $preference_id=0) {
+        $query = "
+            SELECT * FROM external_review_details
+            WHERE preference_id = %d
+        ";
+        $result = db_query($query, $preference_id);
+        $row = db_fetch_object($result);
+        
+        $form = array();
+        $form["wrapper"] = array(
+            "#prefix" => "<div id='status-edit-form'>",
+            "#suffix" => "</div>"
+        );
+        $form["wrapper"]["review"] = array(
+            "#type" => "select",
+            "#title" => "Review Number",
+            "#options" => range(0,10),
+            "#default_value" => $row->review
+        );
+        $form["wrapper"]["status"] = array(
+            "#type" => "radios",
+            "#title" => "Status",
+            "#options" => array(
+                t("Ongoing"),
+                t("Completed")
+            ),
+            "#default_value" => 0
+        );
+        $form["wrapper"]["preference_id"] = array(
+            "#type" => "hidden",
+            "#value" => $preference_id
+        );
+        $form["wrapper"]["submit"] = array(
+            "#type" => "submit",
+            "#value" => "Update"
+        );
+        $form["wrapper"]["cancel"] = array(
+            "#type" => "button",
+            "#value" => "Cancel",
+        );
+        return $form;
+    }
+
+    function tbc_external_review_status_edit_form_submit($form, &$form_state) {
+        $query = "
+            UPDATE external_review_details
+            SET 
+            review = {$form_state['values']['review']},
+            status = {$form_state['values']['status']}
+            WHERE preference_id = {$form_state['values']['preference_id']}
+        ";
+        $result = db_query($query);
+        if(!$result) {
+            drupal_set_message("An error occured during updation.", "error");
+        } else {
+            drupal_set_message("Updated successfully.", "status");
+        }
+    }
+
     function tbc_external_review_manage_status_all($action="", $preference_id=0, $confirm="") {
         global $base_url;
         $page_content = "";
@@ -904,6 +960,19 @@
             $page_content .= l("Yes", "tbc_external_review/manage_status/next/{$preference_id}/yes");
             $page_content .= " | ";
             $page_content .= l("Cancel", "tbc_external_review/manage_status");
+        } else if($action = "edit" && $preference_id) {
+            $query = "
+                SELECT * FROM external_review_details erd
+                LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
+                WHERE preference_id = {$preference_id}
+            ";
+            $result = db_query($query);
+            $row = db_fetch_object($result);
+            $page_content .= "<h1>Status Edit Form</h1>";
+            $page_content .= "Book: <b>{$row->book}</b> <br>";
+            $page_content .= "Author: <b>{$row->author}</b> <br>";
+            $page_content .= drupal_get_form("tbc_external_review_status_edit_form", $preference_id);
+            return $page_content;
         } else {
             $query = "
                 SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
@@ -923,7 +992,7 @@
                     suffix($row->review),
                     ($row->completed?"Completed":"Ongoing"),
                     "{$row->name}",
-                    ($row->completed?l("Next", "tbc_external_review/manage_status/next/" . $row->preference_id):"---")
+                    ($row->completed?l("Next", "tbc_external_review/manage_status/next/" . $row->preference_id):"---") . " | " . l("Edit", "tbc_external_review/manage_status/edit/{$row->preference_id}")
                 );
                 array_push($rows, $item);
             }
