@@ -873,7 +873,7 @@
             UPDATE external_review_details
             SET 
             review = {$form_state['values']['review']},
-            status = {$form_state['values']['status']}
+            completed = {$form_state['values']['status']}
             WHERE preference_id = {$form_state['values']['preference_id']}
         ";
         $result = db_query($query);
