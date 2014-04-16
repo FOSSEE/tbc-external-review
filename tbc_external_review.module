@@ -1235,7 +1235,7 @@
                 ";
             $result = db_query($query, $preference_id);
             $row = db_fetch_object($result);
-            
+            $current_review = $row->review;
             $review_dir = $_SERVER['DOCUMENT_ROOT'] . base_path() . "reviews/{$row->preference_id}/";
             if(!file_exists($review_dir)) {
                 mkdir($review_dir, 0755, TRUE);
@@ -1256,10 +1256,10 @@
                 SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
                 LEFT JOIN textbook_companion_chapter cha ON erc.chapter_id = cha.id
                 LEFT JOIN textbook_companion_example exa ON erc.example_id = exa.id
-                WHERE (erc.hidden = 0 AND erc.preference_id = %d)
+                WHERE (erc.hidden = 0 AND erc.preference_id = %d AND erc.review = %d)
                 ORDER BY chapter, example
                 ";
-            $result = db_query($query, $preference_id);
+            $result = db_query($query, $preference_id, $current_review);
             while($row = db_fetch_object($result)) {
                 $item = array(
                     $row->chapter, $row->example,
