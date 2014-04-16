@@ -42,7 +42,7 @@
             "title" => "External Review Comments",
             "page callback" => "tbc_external_review_comments_all",
             "access arguments" => array("download tbc_external_review"),
-            "weight" => 30,
+                "weight" => 30,
             "type" => MENU_NORMAL_ITEM,
         );
         $items["tbc_external_review/comments/new"] = array(
@@ -103,6 +103,12 @@
             "access callback" => TRUE,
             "type" => MENU_CALLBACK
         );
+        // $items["tbc_external_review/eligibility_test"] = array(
+        //     "title" => "Eligibility Test",
+        //     "page callback" => "tbc_external_review_eligibility_test_all",
+        //     "access arguments" => array("access tbc_external_review"),
+        //     "type" => MENU_NORMAL_ITEM
+        // );
         $items["tbc_external_review/test"] = array(
             "title" => "ER Add Book",
             "page callback" => "tbc_external_review_test_all",
@@ -1546,6 +1552,252 @@
         return $page_content;
     }
 
+    function tbc_external_review_eligibility_test_form($form, $question_id) {
+        $form = array();
+        global $user;
+        
+        $form["wrapper"] = array(
+            "#type" => "fieldset",
+            "#title" => t("Eligibility Test"),
+            "#prefix" => "<div id='eligibility-form-wrapper'>",
+            "#suffix" => "</div>",
+        );
+        $form["wrapper"]["ncf"] = array(
+            "#type" => "radios",
+            "#title" => t("Naming convention followed? (Checklist point 1, 2 and 4)"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["eit"] = array(
+            "#type" => "radios",
+            "#title" => t("Error in textbook mentioned as comment?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+                t("Not required and answer matches with the textbook"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["sua"] = array(
+            "#type" => "radios",
+            "#title" => t("Symbols used are appropiate?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["sfu"] = array(
+            "#type" => "radios",
+            "#title" => t("Scilab functions used?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["aci"] = array(
+            "#type" => "radios",
+            "#title" => t("Appropriate comments included as mentioned in checklist point 7?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["auu"] = array(
+            "#type" => "radios",
+            "#title" => t("Appropriate units used as given in the textbook?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["teo"] = array(
+            "#type" => "radios",
+            "#title" => t("Typographical errors in output and/or comments?"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["mit"] = array(
+            "#type" => "radios",
+            "#title" => t("The code can be approved if the same example is solved using Matlab in the textbook."),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["agl"] = array(
+            "#type" => "radios",
+            "#title" => t("Axes of graph need not be labeled"),
+            "#options" => array(
+                t("Yes"),
+                t("No"),
+            ),
+            "#required" => TRUE
+        );
+        $form["wrapper"]["question_id"] = array(
+            "#type" => "hidden",
+            "#value" => $question_id
+        );
+        $form["wrapper"]["submit"] = array(
+            "#type" => "submit",
+            "#value" => "Submit and Continue."
+        );
+        return $form;
+    }
+
+    function tbc_external_review_eligibility_test_form_submit($form, &$form_state) {
+        global $user;
+        
+        $v = $form_state["values"];
+        
+        /* checking the timer and status of current user */
+        $query = "
+            SELECT * FROM external_review_eligibility_timings
+            WHERE uid = {$user->uid}
+        ";
+        $result = db_query($query);
+        $num_rows = mysql_num_rows($result); //either 1 or 0
+        if($num_rows){
+            /* now checking whether the test is still open */
+            $row = db_fetch_object($result);
+            $start_date = new DateTime($row->start_date);
+            $current_date = new DateTime();
+            $since_start = $start_date->diff($current_date);
+            $minutes_remaining = 9 - $since_start->i;
+            $seconds_remaining = 60 - $since_start->s;
+            if($minutes_remaining >= 0) {
+            } else {
+                drupal_goto("tbc_external_review/eligibility_test/end");
+            }
+        }
+        
+        $query = "
+            SELECT id FROM external_review_eligibility_answers
+            WHERE 
+            uid = {$user->uid} AND question_id = {$v['question_id']}
+        ";
+        $result = db_query($query);
+        $num_rows = mysql_num_rows($result);
+        if($num_rows) {
+            $query = "
+                UPDATE external_review_eligibility_answers
+                SET
+                ncf = {$v['ncf']}, eit = {$v['eit']}, sua = {$v['sua']},
+                sfu = {$v['sfu']}, aci = {$v['aci']}, auu = {$v['auu']},
+                teo = {$v['teo']}, mit = {$v['mit']}, agl = {$v['agl']}
+                WHERE
+                uid = {$user->uid} AND question_id = {$v['question_id']}
+                ";
+            $result = db_query($query);
+        } else {
+            $query = "
+                INSERT INTO external_review_eligibility_answers
+                (
+                    uid, question_id, 
+                    ncf, eit, sua,
+                    sfu, aci, auu,
+                    teo, mit, agl
+                )
+                VALUES
+                (
+                    {$user->uid}, {$v['question_id']},
+                    {$v['ncf']}, {$v['eit']}, {$v['sua']},
+                    {$v['sfu']}, {$v['aci']}, {$v['auu']},
+                    {$v['teo']}, {$v['mit']}, {$v['agl']}
+                )
+            ";
+            $result = db_query($query);
+        }
+        $question_id = $v["question_id"];
+        if($question_id == 5) {
+            // end the test
+            drupal_goto("tbc_external_review/eligibility_test/end");
+        } else {
+            drupal_goto("tbc_external_review/eligibility_test/question/".(++$question_id));
+        }
+    }
+
+    function tbc_external_review_eligibility_test_all($action="", $question_id=0) {
+        global $user;
+        $page_content = "";
+        $minutes_remaining = 10;
+        $seconds_remaining = 0;
+        if($action == "question" && $question_id) {
+            /* checking the timer and status of current user */
+            $query = "
+                SELECT * FROM external_review_eligibility_timings
+                WHERE uid = {$user->uid}
+            ";
+            $result = db_query($query);
+            $num_rows = mysql_num_rows($result); //either 1 or 0
+            if($num_rows){
+                /* now checking whether the test is still open */
+                $row = db_fetch_object($result);
+                $start_date = new DateTime($row->start_date);
+                $current_date = new DateTime();
+                $since_start = $start_date->diff($current_date);
+                $minutes_remaining = 9 - $since_start->i;
+                $seconds_remaining = 60 - $since_start->s;
+                if($minutes_remaining >= 0) {
+                } else {
+                    drupal_goto("tbc_external_review/eligibility_test/end");
+                }
+            } else {
+                /* inserting a new entry into timings table */
+                $current_date = new DateTime();
+                $current_date = $current_date->format('Y-m-d H:i:s');
+                $query = "
+                    INSERT INTO external_review_eligibility_timings
+                    (uid, status, start_date)
+                    VALUES
+                    ({$user->uid}, 1, '{$current_date}')
+                ";
+                $result = db_query($query);
+            }
+            
+            /* getting the questions */
+            $query = "
+                SELECT * FROM external_review_eligibility_questions
+                WHERE id = {$question_id}
+            ";
+            $result = db_query($query);
+            $row = db_fetch_object($result);
+            $page_content .= "<div id='timer'>";
+                $page_content .= "<span id='minutes'></span>m: ";
+                $page_content .= "<span id='seconds'></span>s";
+            $page_content .= "</div>";
+            $page_content .= "<h4>Question {$question_id} of 5</h4>";
+            $page_content .= "<div class='well'><pre>{$row->code}</pre></div>";
+            $page_content .= drupal_get_form("tbc_external_review_eligibility_test_form", $question_id);
+            
+            /* hidden fields with minutes_remaining and seconds_remaining */
+            $page_content .= "<input id='minutes_remaining' value='{$minutes_remaining}' type='hidden'>";
+            $page_content .= "<input id='seconds_remaining' value='{$seconds_remaining}' type='hidden'>";
+        } else if($action == "end") {
+            $query = "
+                UPDATE external_review_eligibility_timings
+                SET status = 2
+                WHERE uid = {$user->uid}
+            ";
+            $result = db_query($query);
+            drupal_set_message("Eligibility Test completed successfully. We will get back to you soon.", "status");
+        } else {
+            $page_content .= l("Click here", "tbc_external_review/eligibility_test/question/1");
+            $page_content .= " to start the test.";
+        }
+        return $page_content;
+    }
+
     function tbc_external_review_test_all() {
         $page_content = "";
         return $page_content;
@@ -1557,5 +1809,6 @@
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery-noconfilct.js");
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery.lightbox_me.js");
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/tbc_external_review.js");
+        drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/timer.js");
     }
 ?>
