@@ -8,7 +8,7 @@
             "access arguments" => array("access tbc_external_review"),
             "type" => MENU_CALLBACK
         );
-        $items["tbc_external_review/reviewer_profile"] = array(
+        $items["tbc_external_review/profile"] = array(
             "title" => "TBC External Reviewer Profile",
             "page callback" => "tbc_external_review_profile_all",
             "access arguments" => array("access tbc_external_review"),
@@ -402,7 +402,8 @@
         } else {
             drupal_set_message("Database updation failed. Please contact support.", "error");
         }
-        drupal_goto('tbc_external_review');
+        // drupal_goto('tbc_external_review');
+        drupal_goto('tbc_external_review/eligibility_test');
     }
 
     function tbc_external_review_profile_all() {
@@ -1689,7 +1690,7 @@
             $start_date = new DateTime($row->start_date);
             $current_date = new DateTime();
             $since_start = $start_date->diff($current_date);
-            $minutes_remaining = 9 - $since_start->i;
+            $minutes_remaining = 24 - $since_start->i;
             $seconds_remaining = 60 - $since_start->s;
             if($minutes_remaining >= 0) {
             } else {
