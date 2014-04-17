@@ -103,12 +103,12 @@
             "access callback" => TRUE,
             "type" => MENU_CALLBACK
         );
-        // $items["tbc_external_review/eligibility_test"] = array(
-        //     "title" => "Eligibility Test",
-        //     "page callback" => "tbc_external_review_eligibility_test_all",
-        //     "access arguments" => array("access tbc_external_review"),
-        //     "type" => MENU_NORMAL_ITEM
-        // );
+        $items["tbc_external_review/eligibility_test"] = array(
+            "title" => "Eligibility Test",
+            "page callback" => "tbc_external_review_eligibility_test_all",
+            "access arguments" => array("access tbc_external_review"),
+            "type" => MENU_NORMAL_ITEM
+        );
         $items["tbc_external_review/test"] = array(
             "title" => "ER Add Book",
             "page callback" => "tbc_external_review_test_all",
@@ -1552,9 +1552,16 @@
         return $page_content;
     }
 
-    function tbc_external_review_eligibility_test_form($form, $question_id) {
+    function tbc_external_review_eligibility_test_form($form, $question_id=0) {
         $form = array();
         global $user;
+        
+        $query = "
+            SELECT * FROM external_review_eligibility_answers
+            WHERE uid = {$user->uid} AND question_id = {$question_id}
+        ";
+        $result = db_query($query);
+        $row = db_fetch_object($result);
         
         $form["wrapper"] = array(
             "#type" => "fieldset",
@@ -1569,7 +1576,8 @@
                 t("Yes"),
                 t("No"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->ncf
         );
         $form["wrapper"]["eit"] = array(
             "#type" => "radios",
@@ -1579,7 +1587,8 @@
                 t("No"),
                 t("Not required and answer matches with the textbook"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->eit
         );
         $form["wrapper"]["sua"] = array(
             "#type" => "radios",
@@ -1588,7 +1597,8 @@
                 t("Yes"),
                 t("No"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->sua
         );
         $form["wrapper"]["sfu"] = array(
             "#type" => "radios",
@@ -1597,7 +1607,8 @@
                 t("Yes"),
                 t("No"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->sfu
         );
         $form["wrapper"]["aci"] = array(
             "#type" => "radios",
@@ -1606,7 +1617,8 @@
                 t("Yes"),
                 t("No"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->aci
         );
         $form["wrapper"]["auu"] = array(
             "#type" => "radios",
@@ -1615,7 +1627,8 @@
                 t("Yes"),
                 t("No"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->auu
         );
         $form["wrapper"]["teo"] = array(
             "#type" => "radios",
@@ -1624,7 +1637,8 @@
                 t("Yes"),
                 t("No"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->teo
         );
         $form["wrapper"]["mit"] = array(
             "#type" => "radios",
@@ -1633,7 +1647,8 @@
                 t("Yes"),
                 t("No"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->mit
         );
         $form["wrapper"]["agl"] = array(
             "#type" => "radios",
@@ -1642,7 +1657,8 @@
                 t("Yes"),
                 t("No"),
             ),
-            "#required" => TRUE
+            "#required" => TRUE,
+            "#default_value" => $row->agl
         );
         $form["wrapper"]["question_id"] = array(
             "#type" => "hidden",
@@ -1730,8 +1746,14 @@
     function tbc_external_review_eligibility_test_all($action="", $question_id=0) {
         global $user;
         $page_content = "";
-        $minutes_remaining = 10;
+        $minutes_remaining = 25;
         $seconds_remaining = 0;
+        
+        if ($question_id > 5 || $question_id < 0) {
+            drupal_set_message("Wrong question number.", "error");
+            drupal_goto("tbc_external_review/eligibility_test/question/1");
+        }
+        
         if($action == "question" && $question_id) {
             /* checking the timer and status of current user */
             $query = "
@@ -1746,7 +1768,7 @@
                 $start_date = new DateTime($row->start_date);
                 $current_date = new DateTime();
                 $since_start = $start_date->diff($current_date);
-                $minutes_remaining = 9 - $since_start->i;
+                $minutes_remaining = 24 - $since_start->i;
                 $seconds_remaining = 60 - $since_start->s;
                 if($minutes_remaining >= 0) {
                 } else {
@@ -1776,7 +1798,15 @@
                 $page_content .= "<span id='minutes'></span>m: ";
                 $page_content .= "<span id='seconds'></span>s";
             $page_content .= "</div>";
-            $page_content .= "<h4>Question {$question_id} of 5</h4>";
+            $page_content .= "<h4>";
+                if ($question_id != 1) {
+                    $page_content .= l("<Prev - ", "tbc_external_review/eligibility_test/question/" . ($question_id-1));
+                }
+                $page_content .= "Question {$question_id} of 5";
+                if ($question_id != 5) {
+                    $page_content .= l(" - Next>", "tbc_external_review/eligibility_test/question/" . ($question_id+1));
+                }
+            $page_content .= "</h4>";
             $page_content .= "<div class='well'><pre>{$row->code}</pre></div>";
             $page_content .= drupal_get_form("tbc_external_review_eligibility_test_form", $question_id);
             
