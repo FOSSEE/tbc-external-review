@@ -19,6 +19,10 @@ function Decrement() {
             seconds.innerHTML = getseconds();
         }
         secs--;
+        
+        if(mins == 0 && secs == 0) {
+            window.location = modPath + "eligibility_test/end";
+        }
         setTimeout('Decrement()',1000);
     }
 }
@@ -26,6 +30,8 @@ function countdown() {
     setTimeout('Decrement()',1000);
 }
 $(document).ready(function() {
+    basePath = Drupal.settings.basePath;
+    modPath = basePath + "tbc_external_review/";
     mins = parseInt($("#minutes_remaining").val());
     tmp = parseInt($("#seconds_remaining").val());  
     secs = mins * 60 + tmp;
