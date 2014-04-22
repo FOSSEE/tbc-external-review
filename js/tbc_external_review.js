@@ -176,6 +176,10 @@ $(document).ready(function() {
         window.location = modPath + "manage_status";
         e.preventDefault();
     });
+    $jq("#add-book-form #edit-cancel").click(function(e) {
+        window.location = basePath + "manage_proposal/all";
+        e.preventDefault();
+    });
     $(document).ajaxStart(function() {
         $ajax_loader.show();
     });

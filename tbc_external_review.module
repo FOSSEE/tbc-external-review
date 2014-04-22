@@ -1344,33 +1344,67 @@
             $page_content .= l("Cancel", "tbc_external_review/manage_comments");
         }
         return $page_content;
+        }
+
+    function tbc_external_review_add_book_form($form_state, $preference_id) {
+        $form = array();
+        $form["wrapper"] = array(
+            "#prefix" => "<div id='add-book-form'>",
+            "#suffix" => "</div>"
+        );
+        $form["wrapper"]["review"] = array(
+            "#type" => "select",
+            "#title" => "Review Number",
+            "#options" => range(0,10),
+            "#default_value" => 1
+        );
+        $form["wrapper"]["preference_id"] = array(
+            "#type" => "hidden",
+            "#value" => $preference_id
+        );
+        $form["wrapper"]["submit"] = array(
+            "#type" => "submit",
+            "#value" => "Submit"
+        );
+        $form["wrapper"]["cancel"] = array(
+            "#type" => "button",
+            "#value" => "Cancel",
+        );
+        return $form;
     }
 
-    function tbc_external_review_add_book_all($preference_id=0, $action = "") {
-        if($action == "confirm") {
-            $query = "
-                INSERT INTO {external_review_details}
-                (preference_id)
-                VALUES
-                (%d)
-            ";
-            $result = db_query($query, $preference_id);
-            if(!$result) {
-                drupal_set_message("An error occured while adding the book for review.", "error");
-            } 
-            $query = "
-                UPDATE textbook_companion_proposal
-                SET proposal_status = 4
-                WHERE id IN
-                (SELECT proposal_id from textbook_companion_preference WHERE id = %d)
-            ";
-            if(!$result) {
-                drupal_set_message("Book status update failed.", "error");
-            } else {
-                drupal_set_message("Book added successfully.", "status");
-            }
-            $result = db_query($query, $preference_id);
-        } else if ($preference_id) {
+    function tbc_external_review_add_book_form_submit($form, &$form_state) {
+        $preference_id = $form_state["values"]["preference_id"];
+        $review = $form_state["values"]["review"];
+        
+        $query = "
+            INSERT INTO {external_review_details}
+            (preference_id, review)
+            VALUES
+            (%d, %d)
+        ";
+        $result = db_query($query, $preference_id, $review);
+        
+        if(!$result) {
+            drupal_set_message("An error occured while adding the book for review.", "error");
+        } 
+        $query = "
+            UPDATE textbook_companion_proposal
+            SET proposal_status = 4
+            WHERE id IN
+            (SELECT proposal_id from textbook_companion_preference WHERE id = %d)
+        ";
+        $result = db_query($query, $preference_id);
+        if(!$result) {
+            drupal_set_message("Book status update failed.", "error");
+        } else {
+            drupal_set_message("Book added successfully.", "status");
+        }
+        drupal_goto("manage_proposal/all");
+    }
+
+    function tbc_external_review_add_book_all($preference_id=0) {
+        if ($preference_id) {
             $page_content = "";
             $query = "
                 SELECT * FROM {textbook_companion_preference} WHERE id = %d
@@ -1380,8 +1414,7 @@
             $page_content .= "<strong>Do you want to continue adding the book?</strong><br>";
             $page_content .= "Book: {$row->book} <br>";
             $page_content .= "Author: {$row->author} <br>";
-            $page_content .= l("Yes", "tbc_external_review/add_book/{$row->id}/confirm") . " | ";
-            $page_content .= l("Cancel", "manage_proposal/all");
+            $page_content .= drupal_get_form("tbc_external_review_add_book_form", $preference_id);
             return $page_content;
         }
         drupal_goto("manage_proposal/all");
