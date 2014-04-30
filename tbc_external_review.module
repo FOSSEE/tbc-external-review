@@ -1881,8 +1881,10 @@
                 $page_content .= "<li>The test consists of 5 code review questions that are mandatory.</li>";
                 $page_content .= "<li>Test duration is 25 minutes, after which the test will automatically close.</li>";
             $page_content .= "</ul>";
-            $page_content .= "<u><b>" . l("Click here", "tbc_external_review/eligibility_test/question/1") . "</b></u>";
-            $page_content .= " to start the test.";
+            // $page_content .= "<u><b>" . l("Click here", "tbc_external_review/eligibility_test/question/1") . "</b></u>";
+            // $page_content .= " to start the test.";
+            $page_content .= "<strong>The test has been suspended for today due to technical reasons.</strong><br>";
+            $page_content .= "<strong>Please visit this page tomorrow.</strong>";
         }
         return $page_content;
     }
