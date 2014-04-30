@@ -109,6 +109,12 @@
             "access arguments" => array("access tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
         );
+        $items["tbc_external_review/manage_tests"] = array(
+            "title" => "Manage Eligibility Test",
+            "page callback" => "tbc_external_review_manage_tests_all",
+            "access arguments" => array("administer tbc_external_review"),
+            "type" => MENU_NORMAL_ITEM
+        );
         $items["tbc_external_review/test"] = array(
             "title" => "ER Add Book",
             "page callback" => "tbc_external_review_test_all",
@@ -1883,6 +1889,43 @@
             $page_content .= "</ul>";
             $page_content .= "<u><b>" . l("Click here", "tbc_external_review/eligibility_test/question/1") . "</b></u>";
             $page_content .= " to start the test.";
+        }
+        return $page_content;
+    }
+
+    function tbc_external_review_manage_test_all($action="", $user_id=0){
+        /* 
+            end the tests that did not close properly 
+            i.e set status=2 before loading this page in the future\
+            if the time has expired.
+        */
+        $page_content = "";
+        if($action == "view" && $user_id) {
+            $query = "
+                SELECT * FROM external_review_eligibility_timings
+            ";
+        } else {
+            $query = "
+                SELECT * FROM external_review_eligibility_timings tim
+                LEFT JOIN users usr ON usr.uid = tim.uid
+                WHERE tim.status = 2
+                ";
+            $result = db_query($query);
+            
+            $headers = array(
+                "User", "Date Attended",
+                "Action"
+            );
+            $rows = array();
+            while($row = db_fetch_object($result)) {
+                $item = array(
+                    $row->name,
+                    $row->start_date,
+                    l("View", "tbc_external_review/manage_tests/view/{$row->uid}")
+                );
+                array_push($rows, $item);
+            }
+            $page_content .= theme("table", $headers, $rows);
         }
         return $page_content;
     }
