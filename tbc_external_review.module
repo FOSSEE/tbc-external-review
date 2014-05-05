@@ -1848,7 +1848,8 @@
                 if ($question_id != 5) {
                     $page_content .= l(" - Next>", "tbc_external_review/eligibility_test/question/" . ($question_id+1));
                 }
-            $page_content .= "</h4>";
+            $page_content .= "</h4><br>";
+            $page_content .= "<div id='example-name'>Example file name: <strong>{$row->example_name}</strong></div><br>";
             $page_content .= "<div class='well'><pre>{$row->code}</pre></div>";
             $page_content .= drupal_get_form("tbc_external_review_eligibility_test_form", $question_id);
             
