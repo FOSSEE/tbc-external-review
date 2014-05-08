@@ -1948,12 +1948,35 @@
                     ($user_answer->mit == $correct_answers[$user_answer->question_id]->mit)?$scores[$user_answer->question_id]++:Null;
                     ($user_answer->agl == $correct_answers[$user_answer->question_id]->agl)?$scores[$user_answer->question_id]++:Null;
                 }
+                $page_content .= "<hr><h1><u>User Score</u></h1>";
                 $total_score = 0;
                 foreach($scores as $key => $value) {
                     $page_content .= "Question {$key} score = <strong>{$value}</strong> out of 9<br>";
                     $total_score += $value;
                 }
                 $page_content .= "<h1>Total Score = {$total_score} out of 45";
+                /* fetching user data for display */
+                $query = "
+                    SELECT * FROM external_review_profile erd
+                    LEFT JOIN users usr ON usr.uid = erd.uid
+                    WHERE erd.uid = %d
+                ";
+                $result = db_query($query, $user_id);
+                $row = db_fetch_array($result);
+                $fields = array(
+                    "first_name", "last_name", "designation", "university",
+                    "phone", "email", "alt_email", "address",
+                    "description"
+                );
+                $page_content .= "<hr><h1><u>User Profile</u></h1>";
+                $page_content .= "<table border=1 cellspacing=1 cellpadding=1>";
+                foreach($fields as $field) {
+                    $page_content .= "<tr>";
+                        $page_content .= "<td>{$field}</td>";
+                        $page_content .= "<td>{$row[$field]}</td>";
+                    $page_content .= "</tr>";
+                }
+                $page_content .= "</table>";
             }
         } else {
             $query = "
