@@ -1897,7 +1897,7 @@
         return $page_content;
     }
 
-    function tbc_external_review_manage_test_all($action="", $user_id=0){
+    function tbc_external_review_manage_tests_all($action="", $user_id=0){
         /* 
             end the tests that did not close properly 
             i.e set status=2 before loading this page in the future\
@@ -1905,9 +1905,56 @@
         */
         $page_content = "";
         if($action == "view" && $user_id) {
+            /* fetching the correct answers*/
             $query = "
                 SELECT * FROM external_review_eligibility_timings
+                WHERE uid = %d
             ";
+            $result = db_query($query, $user_id);
+            if(mysql_num_rows($result)) {
+                /* fetching correct answers */
+                $query = "
+                    SELECT id, ncf, eit, sua, sfu, aci, auu, teo, mit, agl
+                    FROM external_review_eligibility_questions
+                ";
+                $result = db_query($query);
+                $correct_answers = array();
+                while($row = db_fetch_object($result)) {
+                    $correct_answers[$row->id] = $row;
+                }
+                
+                /* fetching user answers */
+                $query = "
+                    SELECT * FROM external_review_eligibility_answers
+                    WHERE uid = %d
+                ";
+                $result = db_query($query, $user_id);
+                $user_answers = array();
+                while($row = db_fetch_object($result)) {
+                    $user_answers[$row->question_id] = $row;
+                }
+                
+                /* comparing the results */
+                $scores = array();
+                foreach($user_answers as $user_answer) {
+                    $scores [$user_answer->question_id] = 0;
+                    ($user_answer->ncf == $correct_answers[$user_answer->question_id]->ncf)?$scores[$user_answer->question_id]++:Null;
+                    ($user_answer->eit == $correct_answers[$user_answer->question_id]->eit)?$scores[$user_answer->question_id]++:Null;
+                    ($user_answer->sua == $correct_answers[$user_answer->question_id]->sua)?$scores[$user_answer->question_id]++:Null;
+                    ($user_answer->sfu == $correct_answers[$user_answer->question_id]->sfu)?$scores[$user_answer->question_id]++:Null;
+                    ($user_answer->aci == $correct_answers[$user_answer->question_id]->aci)?$scores[$user_answer->question_id]++:Null;
+                    ($user_answer->auu == $correct_answers[$user_answer->question_id]->auu)?$scores[$user_answer->question_id]++:Null;
+                    ($user_answer->teo == $correct_answers[$user_answer->question_id]->teo)?$scores[$user_answer->question_id]++:Null;
+                    ($user_answer->mit == $correct_answers[$user_answer->question_id]->mit)?$scores[$user_answer->question_id]++:Null;
+                    ($user_answer->agl == $correct_answers[$user_answer->question_id]->agl)?$scores[$user_answer->question_id]++:Null;
+                }
+                $total_score = 0;
+                foreach($scores as $key => $value) {
+                    $page_content .= "Question {$key} score = <strong>{$value}</strong> out of 9<br>";
+                    $total_score += $value;
+                }
+                $page_content .= "<h1>Total Score = {$total_score} out of 45";
+            }
         } else {
             $query = "
                 SELECT * FROM external_review_eligibility_timings tim
