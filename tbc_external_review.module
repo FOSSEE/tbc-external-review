@@ -47,7 +47,7 @@
             "type" => MENU_NORMAL_ITEM,
         );
         $items["tbc_external_review/comments/new"] = array(
-            "title" => "New Comment",
+            "title" => "Review Comment",
             "page callback" => "tbc_external_review_comments_all",
             "access arguments" => array("download tbc_external_review"),
             "weight" => 1,
@@ -56,6 +56,13 @@
         $items["tbc_external_review/comments/view"] = array(
             "title" => "View Comments",
             "page callback" => "tbc_external_review_comments_view_all",
+            "access arguments" => array("download tbc_external_review"),
+            "weight" => 2,
+            "type" => MENU_LOCAL_TASK,
+        );
+        $items["tbc_external_review/comments/captions"] = array(
+            "title" => "Review Captions",
+            "page callback" => "tbc_external_review_comments_captions_all",
             "access arguments" => array("download tbc_external_review"),
             "weight" => 2,
             "type" => MENU_LOCAL_TASK,
@@ -595,6 +602,149 @@
                 array_push($rows, $item);
             }
             $page_content = theme("table", $headers, $rows);
+        }
+        return $page_content;
+    }
+
+    function tbc_external_review_comments_captions_form($form_state, $preference_id) {
+        $form = array();
+        /*fetching pre-existing caption entry if any */
+        $query = "
+            SELECT examples FROM external_review_captions
+            WHERE preference_id = {$preference_id}
+            ";
+        $result = db_query($query);
+        $row = db_fetch_object($result);
+        $examples = $row->examples;
+        $examples = explode(",", $examples);
+        
+        /* fetching chapter and examples */
+        $c_query = "
+            SELECT * FROM textbook_companion_chapter
+            WHERE preference_id = {$preference_id}
+            ORDER BY number
+        ";
+        $c_result = db_query($c_query);
+        while($c_row = db_fetch_object($c_result)) {
+            $form[$c_row->id] = array(
+                "#type" => "fieldset",
+                "#title" => "Chapter {$c_row->number} ({$c_row->name})"
+            );
+            $e_query = "
+                SELECT * FROM textbook_companion_example
+                WHERE chapter_id = {$c_row->id}
+                ORDER BY number
+            ";
+            $e_result = db_query($e_query);
+            while($e_row = db_fetch_object($e_result)) {
+                $form[$c_row->id][$e_row->id] = array(
+                    "#type" => "checkbox",
+                    "#title" => $e_row->caption,
+                );
+                if(in_array($e_row->id, $examples)) {
+                    $form[$c_row->id][$e_row->id]["#default_value"] = 1;
+                }
+            }
+        }
+        $form["preference_id"] = array(
+            "#type" => "hidden",
+            "#value" => $preference_id
+        );
+        $form["submit"] = array(
+            "#type" => "submit",
+            "#value" => "Submit"
+        );
+        return $form;
+    }
+
+    function tbc_external_review_comments_captions_form_submit($form, &$form_state) {
+        $values = $form_state["values"];
+        $preference_id = $values["preference_id"];
+        $examples = array();
+        foreach($values as $key => $value) {
+            if(is_numeric($key) && $value) {
+                array_push($examples, $key);
+            }
+        }
+        $examples = implode(",", $examples);
+        /* inserting or updating based on row existence */
+        $query = "
+            SELECT id FROM external_review_captions
+            WHERE preference_id = {$preference_id} 
+            AND review = (
+                SELECT review FROM external_review_details
+                WHERE preference_id = {$preference_id}
+            )
+        ";
+        $result = db_query($query);
+        $num_rows = mysql_num_rows($result);
+        if($num_rows) {
+            /* updating the existing */
+            $query = "
+                UPDATE external_review_captions
+                SET examples = '{$examples}'
+                WHERE preference_id = {$preference_id}
+                AND review = (
+                    SELECT review FROM external_review_details
+                    WHERE preference_id = {$preference_id}
+                )
+            ";
+            $result = db_query($query);
+            if($result) {
+                drupal_set_message("Caption error list updated successfully", "status");
+            } else {
+                drupal_set_message("Caption error list updation failed.", "error");
+            }
+        } else {
+            /* creating a new entry */
+            $query = "
+                INSERT INTO external_review_captions
+                (preference_id, examples, review)
+                VALUES
+                (
+                    {$preference_id}, '{$examples}', (
+                        SELECT review FROM external_review_details
+                        WHERE preference_id = {$preference_id}
+                    )
+                )
+            ";
+            $result = db_query($query);
+            if($result) {
+                drupal_set_message("Caption error list updated successfully.", "status");
+            } else {
+                drupal_set_message("Caption error list updation failed.", "error");
+            }
+        }
+    }
+
+    function tbc_external_review_comments_captions_all($preference_id=0) {
+        global $user;
+        $page_content = "";
+        if($preference_id) {
+            $page_content .= "<p>* Check mark all the <strong>captions that do not make sense</strong>.</p>";
+            $page_content .= drupal_get_form("tbc_external_review_comments_captions_form", $preference_id);
+        }
+        else {
+            $query = "
+                SELECT * FROM {textbook_companion_preference} WHERE id IN 
+                (SELECT preference_id FROM {external_review_details} WHERE uid = %d)
+                ";
+            $result = db_query($query, $user->uid);
+            
+            $headers = array(
+                "Book", "Edition",
+                "Action",
+            );
+            $rows = array();
+            while($row = db_fetch_object($result)) {
+                $item = array(
+                    "{$row->book}<br>{$row->author}",
+                    "{$row->edition}",
+                    l(t("Review Captions"), "tbc_external_review/comments/captions/{$row->id}"),
+                );
+                array_push($rows, $item);
+            }
+            $page_content .= theme("table", $headers, $rows);
         }
         return $page_content;
     }
