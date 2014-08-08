@@ -151,30 +151,7 @@ $(document).ready(function() {
         });
     });
     
-    $togglers = $(".togglers-hide-show1");
-    $togglers.click(function() {
-        var preference_id = $(this).attr("manages-comment");
-        
-        $.ajax({
-            url: modPath + "ajax/togglers/" + preference_id,
-            type: "GET",
-            success: function(data) {
-                $tr = $("tr");
-                $tr.each(function() {
-                    if(!$(this).hasClass("manages-comment")) {
-                        if($(this).hasClass("dulls")) {
-                            $(this).removeClass("dulls");
-                            $(this).find(".hide-show1").html("Hide");
-                        } else {
-                            $(this).addClass("dulls");
-                            $(this).find(".hide-show1").html("Show");
-                            $("thead tr").removeClass("dulls");
-                        }
-                    }
-                });
-            }
-        });
-    });
+   
     var count = 1;
     $more = $jq("#review-completion-form #more");
     $missed = $jq("#review-completion-form #missed-list");

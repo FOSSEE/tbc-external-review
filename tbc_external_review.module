@@ -537,8 +537,7 @@
         if($preference_id) {
             if($review) {
                 $query = "
-                    SE
-                    LECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
+                    SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
                     LEFT JOIN textbook_companion_chapter cha ON cha.id = erc.chapter_id 
                     LEFT JOIN textbook_companion_example exa ON exa.id = erc.example_id
                     WHERE erc.preference_id = %d AND erc.review = %d
@@ -981,17 +980,7 @@
             $result = db_query($query,$key);
             $data .= $key;
 
-        }else if($item == "togglers" && $key) {
-            $query = "
-                UPDATE external_review_details
-                SET hidden = !hidden
-                WHERE preference_id = %d 
-                
-            ";
-            $result = db_query($query, $key);
-            $data .= $key;
-        
-        } else if($item == "toggle" && $key) {
+        }else if($item == "toggle" && $key) {
             $query = "
                 UPDATE external_review_comments
                 SET hidden = !hidden
@@ -1070,8 +1059,7 @@
     function tbc_external_review_status_edit_form_submit($form, &$form_state) {
         $query = "
             UPDATE external_review_details
-            SET 
-            review = {$form_state['values']['review']},
+            SET review = {$form_state['values']['review']},
             completed = {$form_state['values']['status']}
             WHERE preference_id = {$form_state['values']['preference_id']}
         ";
