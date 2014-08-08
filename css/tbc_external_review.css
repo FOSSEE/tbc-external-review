@@ -31,8 +31,14 @@
 .error-comment {
     background: tomato !important;
 }
+.manages-comment {
+    background: tomato !important;
+}
 .dull {
     background: #424242 !important;
+}
+.dulls {
+    background: #888888 !important;
 }
 .toggle-hide-show {
     float: right;
@@ -49,6 +55,7 @@
             transition: color  .5s ease-out .1s;
     font-weight: bold;
 }
+
 .toggle-hide-show:hover {
     cursor: pointer;
     background: #424242;

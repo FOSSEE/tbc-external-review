@@ -101,6 +101,30 @@ $(document).ready(function() {
         e.preventDefault();
     });
 
+     $hide_show1= $(".hide-show1");
+    
+    $hide_show1.click(function(e) {
+        var preference_id = $(this).attr("manages-comment");
+        $t = $(this);
+        $.ajax({
+            url: modPath + "ajax/hide-show1/" + preference_id,
+            type: "GET",
+            dataType: "html",
+            success: function(data) {
+                $tr = $t.parents("tr:first");
+                if($tr.hasClass("dulls")) {
+                    $t.parents("tr:first").removeClass("dulls");
+                    $t.html("Hide");
+                } else {
+                    $t.parents("tr:first").addClass("dulls");
+                    $t.html("Show");
+                }
+                console.log(data);
+            },
+        });
+        e.preventDefault();
+    });
+
     /* toggle hide-show */
     $toggler = $(".toggle-hide-show");
     $toggler.click(function() {
@@ -126,7 +150,31 @@ $(document).ready(function() {
             }
         });
     });
-
+    
+    $togglers = $(".togglers-hide-show1");
+    $togglers.click(function() {
+        var preference_id = $(this).attr("manages-comment");
+        
+        $.ajax({
+            url: modPath + "ajax/togglers/" + preference_id,
+            type: "GET",
+            success: function(data) {
+                $tr = $("tr");
+                $tr.each(function() {
+                    if(!$(this).hasClass("manages-comment")) {
+                        if($(this).hasClass("dulls")) {
+                            $(this).removeClass("dulls");
+                            $(this).find(".hide-show1").html("Hide");
+                        } else {
+                            $(this).addClass("dulls");
+                            $(this).find(".hide-show1").html("Show");
+                            $("thead tr").removeClass("dulls");
+                        }
+                    }
+                });
+            }
+        });
+    });
     var count = 1;
     $more = $jq("#review-completion-form #more");
     $missed = $jq("#review-completion-form #missed-list");

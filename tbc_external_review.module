@@ -1,4 +1,6 @@
 <?php 
+
+
     date_default_timezone_set('Asia/Calcutta');
     function tbc_external_review_menu() {
         $items = array();
@@ -73,6 +75,7 @@
             "access arguments" => array("administer tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
         );
+        
         $items["tbc_external_review/mail_comments"] = array(
             "title" => "ER Mail Comments",
             "page callback" => "tbc_external_review_mail_comments_all",
@@ -111,6 +114,7 @@
             "access callback" => TRUE,
             "type" => MENU_CALLBACK
         );
+        
         $items["tbc_external_review/eligibility_test"] = array(
             "title" => "Eligibility Test",
             "page callback" => "tbc_external_review_eligibility_test_all",
@@ -533,7 +537,8 @@
         if($preference_id) {
             if($review) {
                 $query = "
-                    SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
+                    SE
+                    LECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
                     LEFT JOIN textbook_companion_chapter cha ON cha.id = erc.chapter_id 
                     LEFT JOIN textbook_companion_example exa ON exa.id = erc.example_id
                     WHERE erc.preference_id = %d AND erc.review = %d
@@ -963,6 +968,29 @@
             ";
             $result = db_query($query, $key);
             $data .= $key;
+
+        } 
+
+         else if($item == "hide-show1") {
+             
+            $query = "
+                UPDATE external_review_details
+                SET hidden = !hidden
+                WHERE preference_id = %d
+            ";
+            $result = db_query($query,$key);
+            $data .= $key;
+
+        }else if($item == "togglers" && $key) {
+            $query = "
+                UPDATE external_review_details
+                SET hidden = !hidden
+                WHERE preference_id = %d 
+                
+            ";
+            $result = db_query($query, $key);
+            $data .= $key;
+        
         } else if($item == "toggle" && $key) {
             $query = "
                 UPDATE external_review_comments
@@ -976,6 +1004,7 @@
             $result = db_query($query, $key);
             $data .= $key;
         }
+        
         echo $data;
         exit();
     }
@@ -1351,10 +1380,11 @@
                 LEFT JOIN textbook_companion_proposal pro ON pre.proposal_id = pro.id
                 LEFT JOIN users usr_con ON usr_con.uid = pro.uid
                 LEFT JOIN users usr_ext ON usr_ext.uid = erc.uid
-                LEFT JOIN external_review_details erd ON erd.preference_id = erc.preference_id
-                ORDER BY pre.book
+                LEFT JOIN external_review_details erd ON erd.preference_id = erc.preference_id 
+                ORDER BY erd.hidden
             ";
-            $result = db_query($query);
+             $result = db_query($query);
+                     
             $headers = array(
                 "Book", "Review No.",
                 "Status", "Contributor",
@@ -1362,25 +1392,51 @@
             );
             $rows = array();
             while($row = db_fetch_object($result)) {
-                $item = array(
-                    "{$row->book}<br><em>by {$row->author}</em>",
-                    suffix($row->review),
-                    ($row->completed?"Completed":"Ongoing"),
-                    "{$row->contributor}",
-                    "{$row->reviewer}",
-                    l("View", "tbc_external_review/manage_comments/" . $row->preference_id)
+                  $hide_optionss= array(
+                    /* # linking in drupal l() */
+                    "fragment" => " ",
+                    "external" => TRUE,
+                    "attributes" => array(
+                        "class" => "hide-show1",
+                        "manages-comment" => "{$row->preference_id}",
+                    )
                 );
-                end($item);
-                $key = key($item);
+                $item = array(
+                    "data" => array(
+                        "{$row->book}<br><em>by {$row->author}</em>",
+                        suffix($row->review),
+                        ($row->completed?"Completed":"Ongoing"),
+                        "{$row->contributor}",
+                        "{$row->reviewer}",
+                        l("View", "tbc_external_review/manage_comments/" . $row->preference_id)
+                    ),
+                );
+
+                if($row->hidden) {
+                 $item["class"] .= " dulls";
+                } 
+
+                end($item["data"]);
+                $key = key($item["data"]);
                 if(!$row->sent) {
-                    $item[$key] .= " | " . l("Mail", "tbc_external_review/mail_comments/" . $row->preference_id);
+                    $item["data"][$key] .= " | " . l("Mail", "tbc_external_review/mail_comments/" . $row->preference_id);
                 } else {
-                    $item[$key] .= " | " . "Sent";
+                    $item["data"][$key] .= " | " . "Sent";
                 }
+                 
+                /* hide/unhide link */
+                end($item);
+                $key= key($item["data"]);
+                if($row->hidden) {
+                    $item["data"][$key] .= " | " . l("Show", "", $hide_optionss);
+                } else {
+                    $item["data"][$key] .= " | " . l("Hide", "", $hide_optionss);
+                }
+
                 array_push($rows, $item);
             }
             $page_content .= theme("table", $headers, $rows);
-        }
+           }
         return $page_content;
     }
 
@@ -2167,4 +2223,7 @@
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/tbc_external_review.js");
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/timer.js");
     }
-?>
+ 
+
+    
+
