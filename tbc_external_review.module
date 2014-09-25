@@ -126,13 +126,26 @@
             "page callback" => "tbc_external_review_manage_tests_all",
             "access arguments" => array("administer tbc_external_review"),
             "type" => MENU_NORMAL_ITEM
-        );
-        $items["tbc_external_review/test"] = array(
-            "title" => "ER Add Book",
-            "page callback" => "tbc_external_review_test_all",
+        ); 
+        $items["tbc_external_review/er"] = array(
+            "title" => "ER Assign/ Remove Book",
+            "page callback" => "tbc_external_review_er_assign_book_all",
             "access arguments" => array("download tbc_external_review"),
-            "type" => MENU_CALLBACK
-        );
+            "type" => MENU_NORMAL_ITEM            
+        );          
+        $items["tbc_external_review/er/assign_book"] = array(
+            "title" => "ER Assign Book",
+            "page callback" => "tbc_external_review_er_assign_book_all",
+            "access arguments" => array("download tbc_external_review"),
+            "type" => MENU_DEFAULT_LOCAL_TASK            
+        );     
+        $items["tbc_external_review/er/remove_book"] = array(
+            "title" => "ER Remove Book",
+            "page callback" => "tbc_external_review_er_remove_book_all",
+            "access arguments" => array("download tbc_external_review"),
+            "type" => MENU_LOCAL_TASK
+            
+        );           
         return $items;
     }
 
@@ -2197,12 +2210,133 @@
         }
         return $page_content;
     }
+    function tbc_external_review_er_assign_book_form(){
+          $query = "  
+             SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.completed FROM textbook_companion_preference pre
+             LEFT JOIN external_review_details erd ON erd.preference_id = pre.id
+             LEFT JOIN users usr ON usr.uid = erd.uid
+             WHERE erd.status = 0 AND completed = 0
+             ORDER BY pre.book ASC
+         ";
+         $result = db_query($query);
+         $books = array();
+         $books[0] = "Please select a book";
+         while($row1 = db_fetch_object($result)) {
+            $books[$row1->id] = "{$row1->book} (Author: {$row1->author}, Edition: {$row1->edition})";           
+         }
 
-    function tbc_external_review_test_all() {
-        $page_content = "";
+         $querys = "  
+             SELECT * FROM users_roles rol
+             LEFT JOIN users usr ON usr.uid = rol.uid
+             LEFT JOIN external_review_profile erp ON erp.uid = usr.uid
+             WHERE rol.rid = 9
+             ORDER BY erp.first_name ASC
+         ";
+         $results = db_query($querys);         
+         $reviewers = array();
+         $reviewers[0] = "Please select a reviewer";
+         while($row = db_fetch_object($results)) {                
+             $reviewers[$row->uid] = "{$row->first_name} {$row->last_name}";
+         }
+        $form = array();
+        $form["reviewers"] = array(
+            "#type" => "select",
+            "#title" => "",
+            "#description" => t("Please select a reviewer."),
+            "#options" => $reviewers
+        );  
+        $form["book"] = array(
+            "#type" => "select",
+            "#title" => "",
+            "#description" => t("Please select a book."),
+            "#options" => $books
+        );        
+        $form["submit"] = array(
+            "#type" => "submit",
+            "#value" => "Submit",
+        );
+        return $form;
+    }
+    function tbc_external_review_er_assign_book_form_validate($form, &$form_state) {
+        if(!$form_state["values"]["reviewers"]) {
+            form_set_error("reviewers", "Please select a reviewer.");
+        }
+        if(!$form_state["values"]["book"]) {
+            form_set_error("book", "Please select a book.");
+        }
+    }
+    function tbc_external_review_er_assign_book_form_submit($form, &$form_state){
+    
+            $v = $form_state["values"];
+            $query = "
+              UPDATE external_review_details
+              SET status = 1 , uid = %d
+              WHERE preference_id = %d
+            ";
+            $result = db_query($query, 
+               $v["reviewers"], $v["book"]
+            );        
+            drupal_set_message("Book alloted successfully", "status");
+            
+    }
+    function tbc_external_review_er_assign_book_all() {
+        $page_content .= "";
+        $page_content .= "";
+        $page_content .= "";
+        $page_content .= "";
+        $page_content .= drupal_get_form("tbc_external_review_er_assign_book_form");
         return $page_content;
     }
+    function tbc_external_review_er_remove_book_form(){
+         $query = "  
+            SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid FROM textbook_companion_preference pre
+            LEFT JOIN external_review_details erd ON erd.preference_id = pre.id
+            LEFT JOIN users usr ON usr.uid = erd.uid
+            WHERE erd.status = 1  
+            ORDER BY pre.book ASC 
+        ";
+        $result = db_query($query);
+        $books = array();
+        $books[0] = "Please select a book";    
+        while($row = db_fetch_object($result)) {
+           $books[$row->id] = "{$row->book} (Author: {$row->author}, Edition: {$row->edition})";        
+        }
 
+        $form["book"] = array(
+            "#type" => "select",
+            "#title" => "",
+            "#description" => t("Please select a book."),
+            "#options" => $books
+        );        
+        $form["submit"] = array(
+            "#type" => "submit",
+            "#value" => "Submit",
+        );
+        return $form;
+    }
+    function tbc_external_review_er_remove_book_form_validate($form, &$form_state) {
+        if(!$form_state["values"]["book"]) {
+            form_set_error("book", "Please select a book.");
+        }
+    }
+    function tbc_external_review_er_remove_book_form_submit($form, &$form_state){    
+            $v = $form_state["values"];
+            $query = "
+              UPDATE external_review_details
+              SET status = 0 , uid = 0 
+              WHERE preference_id = %d
+            ";
+            $result = db_query($query, 
+                $v["book"]
+            );        
+            drupal_set_message("Book removed successfully", "status");
+            
+    }
+    function tbc_external_review_er_remove_book_all() {
+        $page_content .= "";        
+        $page_content .= drupal_get_form("tbc_external_review_er_remove_book_form");
+        return $page_content;
+    }
     function tbc_external_review_init() {
         drupal_add_css(drupal_get_path("module", "tbc_external_review") . "/css/tbc_external_review.css");
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery-1.11.0.min.js");
@@ -2214,4 +2348,3 @@
  
 
     
-

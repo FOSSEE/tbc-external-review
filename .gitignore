@@ -39,3 +39,4 @@ xmlrpc.php
 # Ignore vim temp. files
 *.swo
 *.swp
+*~
