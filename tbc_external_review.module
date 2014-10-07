@@ -2239,7 +2239,7 @@
     }
 
     function tbc_external_review_er_assign_book_form(){
-          $query = "  
+        $query = "  
              SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.completed FROM textbook_companion_preference pre
              LEFT JOIN external_review_details erd ON erd.preference_id = pre.id
              LEFT JOIN users usr ON usr.uid = erd.uid
@@ -2253,7 +2253,7 @@
             $books[$row1->id] = "{$row1->book} (Author: {$row1->author}, Edition: {$row1->edition})";           
          }
                     
-         $querys = "  
+        $querys = "  
              SELECT * FROM users_roles rol
              LEFT JOIN users usr ON usr.uid = rol.uid
              LEFT JOIN external_review_profile erp ON erp.uid = usr.uid
@@ -2297,11 +2297,11 @@
 
     function tbc_external_review_er_assign_book_form_submit($form, &$form_state){
     
-            $v = $form_state["values"];
-            $query = "
-              UPDATE external_review_details
-              SET status = 1 , uid = %d
-              WHERE preference_id = %d
+        $v = $form_state["values"];
+        $query = "
+            UPDATE external_review_details
+            SET status = 1 , uid = %d
+            WHERE preference_id = %d
             ";
             $result = db_query($query, 
                $v["reviewers"], $v["book"]
@@ -2354,11 +2354,11 @@
     }
 
     function tbc_external_review_er_remove_book_form_submit($form, &$form_state){    
-            $v = $form_state["values"];
-            $query = "
-              UPDATE external_review_details
-              SET status = 0 , uid = 0 
-              WHERE preference_id = %d
+        $v = $form_state["values"];
+        $query = "
+            UPDATE external_review_details
+            SET status = 0 , uid = 0 
+            WHERE preference_id = %d
             ";
             $result = db_query($query, 
                 $v["book"]
@@ -2374,8 +2374,7 @@
     }
     
     function _er_reminder_all($id=0, $confirm="") {
-              $page_content = "";
-              if($id && $confirm == "yes"){
+        function _er_reminder_mail($id){
             $query = "
                SELECT pre.id AS id, pre.book, pre.author, pre.edition, erd.failed_reminder, usr.uid, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
                     LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
@@ -2409,40 +2408,21 @@
             </p>
             ";
             $message = array(
-              "to" => $to,
+             // "to" => $to,
+              "to" => "prashantsinalkar@gmail.com",
               "subject" => $subject,
               "body" => $body,
               "headers" => array(
                 "From" => "textbook@scilab.in",
-                "Bcc" => "textbook@scilab.in, lavitha89@gmail.com, bhavani.jalkrish@gmail.com, rush2jrp@gmail.com",
+               // "Bcc" => "textbook@scilab.in, lavitha89@gmail.com, bhavani.jalkrish@gmail.com, rush2jrp@gmail.com",
                 "Content-Type" => "text/html; charset=UTF-8; format=flowed"
               )
-            );
-            echo "<pre>";
-            print_r($message);
-            die;
+            );            
             drupal_mail_send($message);
             drupal_set_message("Reminder sent successfully.");
-            drupal_goto("tbc_external_review/reminder/reviewer_reminder");
-            } else if($id) {
-            $query = "
-             SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erp.first_name, erp.last_name, erd.failed_reminder, usr.mail FROM textbook_companion_preference pre
-                    LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
-                    LEFT JOIN users_roles rol ON erd.uid = rol.uid            
-                    LEFT JOIN users usr ON usr.uid = erd.uid
-                    LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
-                    WHERE erd.status = 1 AND completed = 0 AND rol.rid = 9 AND id = {$id}
-                    ";
-            $result = db_query($query);
-            $row = db_fetch_object($result);
-            $page_content .= "Are you sure you want to notify?<br><br>";
-            $page_content .= "Book: <b>{$row->book}</b><br>";
-            $page_content .= "Author: <b>{$row->author}</b><br>";
-            $page_content .= "Reviewer: <b>{$row->first_name} {$row->last_name}</b><br>";
-            $page_content .= l("Yes", "tbc_external_review/reminder/reviewer_reminder/{$row->id}/yes") . " | ";
-            $page_content .= l("Cancel", "tbc_external_review/reminder/reviewer_reminder");
-          } else {
-            $query = "
+
+        }
+                          $query = "
                SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.failed_reminder, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
                     LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
                     LEFT JOIN users_roles rol ON erd.uid = rol.uid            
@@ -2454,28 +2434,30 @@
             
             $headers = array(
              "Book", "Author", "Reviewer Name",
-               "Remainders", "Action"
+               "Remainders"
             );
             $rows = array();  
             while ($row = db_fetch_object($result)) {
               $item  =array(        
                 $row->book,
                 $row->author,
-                $row->first_name,       
+                $row->first_name. " ". $row->last_name,  
                 $row->failed_reminder,
-                l("Remind", "tbc_external_review/reminder/reviewer_reminder/{$row->id}")
+                _er_reminder_mail($row->id),
+               // l("Remind", "tbc_external_review/reminder/reviewer_reminder/{$row->id}")
       );
             array_push($rows, $item);
     }
             $page_content .= theme("table", $headers, $rows);
-  }
+  
   
   return $page_content;
 }
 
     function _er_tbc_reviewer_reminder_all($id=0, $confirm="") {
-       $page_content = "";
-       if($id && $confirm == "yes"){
+
+        function _tbc_er_reminder_mail($id){
+
     $query = "
             SELECT DISTINCT pre.id, erc.review AS id, pre.book, pre.author, pre.edition, usr.uid, erd.failed_reminder,
             erd.failed_review, erc.review, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
@@ -2498,49 +2480,36 @@
             /* sending mail */
             
            // $to = $row->mail;
-            $subject = "Failed to review TBC on time";
+            $subject = "Failed to complete the review on time";
             $body = "
             <p>
               Dear TBC reviewer,<br><br>
-              This is to inform you that {$row->first_name} {$row->last_name} have failed to review the TBC book on time.<br>
+              This is to inform you that <b>{$row->first_name} {$row->last_name}</b> have failed to review the book: <b>{$row->book}</b>, Author: <b>{$row->author}</b> on time.<br><br><br>
               
               Regards,<br>
               Scilab Team
             </p>
             ";
             $message = array(
-              "to" => "lavitha89@gmail.com, bhavani.jalkrish@gmail.com ",
+                "to" => "prashantsinalkar@gmail.com",
+              //"to" => "lavitha89@gmail.com, bhavani.jalkrish@gmail.com ",
               "subject" => $subject,
               "body" => $body,
               "headers" => array(
                 "From" => "textbook@scilab.in",
-                "Bcc" => "rush2jrp@gmail.com",
+               // "Bcc" => "rush2jrp@gmail.com",
                 "Content-Type" => "text/html; charset=UTF-8; format=flowed"
               )
             );
             drupal_mail_send($message);  
             db_query($query);
             drupal_set_message("Reminder sent successfully.");
-            drupal_goto("tbc_external_review/reminder/tbc_reviewer_reminder");
-  } else if($id) {
-            $query = "
-            SELECT DISTINCT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.failed_reminder, erc.review, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
-                    LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
-                    LEFT JOIN users_roles rol ON erd.uid = rol.uid            
-                    LEFT JOIN users usr ON usr.uid = erd.uid
-                    LEFT JOIN external_review_comments erc ON erc.uid = erd.uid
-                    LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
-                    WHERE erd.status = 1 AND erc.review = 0 AND rol.rid = 9 AND pre.id = {$id}
-                    ";
-            $result = db_query($query);
-            $row = db_fetch_object($result);
-            $page_content .= "Are you sure you want to notify?<br><br>";
-            $page_content .= "Book: <b>{$row->book}</b><br>";
-            $page_content .= "Author: <b>{$row->author}</b><br>";
-            $page_content .= "Reviewer: <b>{$row->first_name} {$row->last_name}</b><br>";
-            $page_content .= l("Yes", "tbc_external_review/reminder/tbc_reviewer_reminder/{$row->id}/yes") . " | ";
-            $page_content .= l("Cancel", "tbc_external_review/reminder/tbc_reviewer_reminder");
-  } else {
+           // drupal_goto("tbc_external_review/reminder/tbc_reviewer_reminder");
+  
+
+        }
+       $page_content = "";
+        
             $query = "
             SELECT DISTINCT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.failed_reminder, erd.failed_review, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
                     LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
@@ -2554,21 +2523,22 @@
             
             $headers = array(
              "Book", "Author", "Reviewer Name",
-               "Reminder count", "Action"
+               "Reminder count"
             );
             $rows = array();  
             while ($row = db_fetch_object($result)) {
-              $item  =array(        
+              $item  = array(        
                 $row->book,
                 $row->author,
-                $row->first_name,       
+                $row->first_name ." ". $row->last_name,      
                 $row->failed_review,
-                l("Remind", "tbc_external_review/reminder/tbc_reviewer_reminder/{$row->id}")
+                _tbc_er_reminder_mail($row->id),
+                //l("Remind", "tbc_external_review/reminder/tbc_reviewer_reminder/{$row->id}")
       );
       array_push($rows, $item);
     }
     $page_content .= theme("table", $headers, $rows);
-  }
+  
   
   return $page_content;
 }
