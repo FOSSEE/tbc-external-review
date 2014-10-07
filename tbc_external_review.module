@@ -2408,8 +2408,7 @@
             </p>
             ";
             $message = array(
-             // "to" => $to,
-              "to" => "prashantsinalkar@gmail.com",
+              "to" => $to,             
               "subject" => $subject,
               "body" => $body,
               "headers" => array(
@@ -2490,14 +2489,13 @@
               Scilab Team
             </p>
             ";
-            $message = array(
-                "to" => "prashantsinalkar@gmail.com",
-              //"to" => "lavitha89@gmail.com, bhavani.jalkrish@gmail.com ",
+            $message = array(               
+              "to" => "lavitha89@gmail.com, bhavani.jalkrish@gmail.com ",
               "subject" => $subject,
               "body" => $body,
               "headers" => array(
                 "From" => "textbook@scilab.in",
-               // "Bcc" => "rush2jrp@gmail.com",
+                "Bcc" => "rush2jrp@gmail.com",
                 "Content-Type" => "text/html; charset=UTF-8; format=flowed"
               )
             );
