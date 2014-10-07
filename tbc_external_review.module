@@ -2412,16 +2412,16 @@
               "subject" => $subject,
               "body" => $body,
               "headers" => array(
-                "From" => "textbook@scilab.in",
-               // "Bcc" => "textbook@scilab.in, lavitha89@gmail.com, bhavani.jalkrish@gmail.com, rush2jrp@gmail.com",
-                "Content-Type" => "text/html; charset=UTF-8; format=flowed"
+              "From" => "textbook@scilab.in",
+              "Bcc" => "textbook@scilab.in, lavitha89@gmail.com, bhavani.jalkrish@gmail.com, rush2jrp@gmail.com",
+              "Content-Type" => "text/html; charset=UTF-8; format=flowed"
               )
             );            
             drupal_mail_send($message);
             drupal_set_message("Reminder sent successfully.");
 
         }
-                          $query = "
+            $query = "
                SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.failed_reminder, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
                     LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
                     LEFT JOIN users_roles rol ON erd.uid = rol.uid            
