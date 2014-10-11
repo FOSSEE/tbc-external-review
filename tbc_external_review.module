@@ -2426,7 +2426,6 @@
                             $body = "
                             <p>
                               Dear Reviewer,<br><br>
-                              {$row->first_name}<br>
                               This is to remind you that it has been 15 days since the book was allotted to you. You still have 15 days left from the provided 30 days to submit your review comments. 
                               Please submit your review comments in the Scilab interface. If you fail to submit the comments on time, the textbook will be removed from your account.<br>
                               Please note that extension of deadline is not possible on any account.<br><br>
@@ -2492,7 +2491,7 @@
                 LEFT JOIN users usr ON usr.uid = erd.uid
                 LEFT JOIN external_review_comments erc ON erc.uid = erd.uid
                 LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
-                WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0 AND erd.failed_review = 0 AND pre.id = {$id}
+                WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0 AND  pre.id = {$id}
                 ";
                 $result = db_query($query);
                 $row = db_fetch_object($result);
@@ -2509,11 +2508,11 @@
                     ";
                     /* sending mail */
                     $to = $row->mail;
-                    $subject = " External reviewers book delay";
+                    $subject = "External reviewers book delay";
                     $body = "
                     <p>
-                      Dear TBC Reviewers ,<br><br>
-                      This is to inform you that <b>{$row->first_name} {$row->last_name}</b> has failed to review the Book: <b>{$row->book}</b>, Author: <b>{$row->author}, 
+                      Dear TBC Reviewers,<br><br>
+                      This is to inform you that <b>{$row->first_name} {$row->last_name}</b> has failed to review the Book: <b>{$row->book}</b>, Author: <b>{$row->author}</b>, 
                       Edition: <b>{$row->edition}</b> on time.<br><br><br>
                       Regards,<br>
                       Scilab Team
@@ -2544,11 +2543,11 @@
                         LEFT JOIN users usr ON usr.uid = erd.uid
                         LEFT JOIN external_review_comments erc ON erc.uid = erd.uid
                         LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
-                        WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0 AND erd.failed_review = 0
+                        WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0
                         ";
                 $result = db_query($query);                
                 $headers = array(
-                 "Book", "Author", "Reviewer Name"
+                 "Book", "Author", "Reviewer Name", "Remainders"
                 );
                 $rows = array();  
                 while ($row = db_fetch_object($result)) {
@@ -2556,7 +2555,7 @@
                     $row->book,
                     $row->author,
                     $row->first_name ." ". $row->last_name,      
-                   // $row->failed_review,
+                    $row->failed_review,
                     _tbc_er_reminder_mail($row->id),                    
                 );
             array_push($rows, $item);
@@ -2609,19 +2608,19 @@
                         LEFT JOIN users usr ON usr.uid = erd.uid
                         LEFT JOIN external_review_comments erc ON erc.uid = erd.uid
                         LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
-                        WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0 AND erd.failed_review = 0
+                        WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0
                         ";                    
                 $result = db_query($query);                
                 $headers = array(
-                 "Book", "Author", "Reviewer Name"
+                 "Book", "Author", "Reviewer Name", "Remainders"
                 );
                 $rows = array();  
             while ($row = db_fetch_object($result)) {
                 $item  = array(        
                     $row->book,
                     $row->author,
-                    $row->first_name ." ". $row->last_name,      
-                                  
+                    $row->first_name ." ". $row->last_name,
+                    $row->failed_review,
                 );
             array_push($rows, $item);
             }
