@@ -139,12 +139,12 @@
             "access arguments" => array("download tbc_external_review"),
             "type" => MENU_DEFAULT_LOCAL_TASK            
         );     
-        $items["tbc_external_review/er/remove_book"] = array(
-            "title" => "ER Remove Book",
-            "page callback" => "tbc_external_review_er_remove_book_all",
-            "access arguments" => array("download tbc_external_review"),
-            "type" => MENU_LOCAL_TASK            
-        ); 
+        // $items["tbc_external_review/er/remove_book"] = array(
+        //     "title" => "ER Remove Book",
+        //     "page callback" => "tbc_external_review_er_remove_book_all",
+        //     "access arguments" => array("download tbc_external_review"),
+        //     "type" => MENU_LOCAL_TASK            
+        // ); 
         $items["tbc_external_review/mail"] = array(
             "title" => "Mail Email To Reviewer",
             "page callback" => "tbc_external_review_mail_all",
@@ -2435,7 +2435,7 @@
                             "Content-Type" => "text/html; charset=UTF-8; format=flowed"
                             )
                         );
-                        drupal_mail_send($message);
+                        //drupal_mail_send($message);
                         db_query($query);
                     } else {
                             }
@@ -2514,7 +2514,7 @@
                       "Content-Type" => "text/html; charset=UTF-8; format=flowed"
                       )
                     );
-                    drupal_mail_send($message);
+                    //drupal_mail_send($message);
                     db_query($query);
                 } else{
                     }
