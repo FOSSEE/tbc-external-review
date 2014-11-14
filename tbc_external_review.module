@@ -130,21 +130,21 @@
         $items["tbc_external_review/er"] = array(
             "title" => "ER Assign/ Remove Book",
             "page callback" => "tbc_external_review_er_assign_book_all",
-            "access arguments" => array("download tbc_external_review"),
-            "type" => MENU_NORMAL_ITEM            
+            "access arguments" => array("access tbc_er_assign_add_remove_books"),
+            "type" => MENU_NORMAL_ITEM
         );          
         $items["tbc_external_review/er/assign_book"] = array(
             "title" => "ER Assign Book",
             "page callback" => "tbc_external_review_er_assign_book_all",
-            "access arguments" => array("download tbc_external_review"),
-            "type" => MENU_DEFAULT_LOCAL_TASK            
+            "access arguments" => array("access tbc_er_assign_add_remove_books"),
+            "type" => MENU_DEFAULT_LOCAL_TASK
         );     
-        // $items["tbc_external_review/er/remove_book"] = array(
-        //     "title" => "ER Remove Book",
-        //     "page callback" => "tbc_external_review_er_remove_book_all",
-        //     "access arguments" => array("download tbc_external_review"),
-        //     "type" => MENU_LOCAL_TASK            
-        // ); 
+        $items["tbc_external_review/er/remove_book"] = array(
+            "title" => "ER Remove Book",
+            "page callback" => "tbc_external_review_er_remove_book_all",
+            "access arguments" => array("access tbc_er_assign_add_remove_books"),
+            "type" => MENU_LOCAL_TASK
+        ); 
         $items["tbc_external_review/mail"] = array(
             "title" => "Mail Email To Reviewer",
             "page callback" => "tbc_external_review_mail_all",
@@ -192,7 +192,7 @@
     function tbc_external_review_perm() {
         return array(
             "access tbc_external_review", "administer tbc_external_review", "tbc_external_review_reminder_mail",
-            "download tbc_external_review"
+            "download tbc_external_review", "access tbc_er_assign_add_remove_books"
         );
     }
 
