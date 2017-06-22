@@ -1,3 +1,4 @@
 name = Tbc external review
 description = Module for the tbc external review
-core = 6.x
+core = 7.x
+package = IITB

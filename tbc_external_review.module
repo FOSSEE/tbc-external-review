@@ -119,13 +119,15 @@
             "title" => "Eligibility Test",
             "page callback" => "tbc_external_review_eligibility_test_all",
             "access arguments" => array("access tbc_external_review"),
-            "type" => MENU_NORMAL_ITEM
+            "type" => MENU_NORMAL_ITEM,
+            "file" => "tbc_external_review_eligibility_test.inc"
         );
         $items["tbc_external_review/manage_tests"] = array(
             "title" => "Manage Eligibility Test",
             "page callback" => "tbc_external_review_manage_tests_all",
             "access arguments" => array("administer tbc_external_review"),
-            "type" => MENU_NORMAL_ITEM
+            "type" => MENU_NORMAL_ITEM,
+            "file" => "tbc_external_review_eligibility_test.inc"
         ); 
         $items["tbc_external_review/er"] = array(
             "title" => "ER Assign/ Remove Book",
@@ -145,7 +147,7 @@
             "access arguments" => array("access tbc_er_assign_add_remove_books"),
             "type" => MENU_LOCAL_TASK
         ); 
-        $items["tbc_external_review/mail"] = array(
+       /* $items["tbc_external_review/mail"] = array(
             "title" => "Mail Email To Reviewer",
             "page callback" => "tbc_external_review_mail_all",
             "access arguments" => array("download tbc_external_review"),
@@ -165,7 +167,7 @@
             "access arguments" =>array("tbc_external_review_reminder_mail"),
             "type" => MENU_LOCAL_TASK
         );
-        $items["tbc_external_review/reminder_all"] = array(
+       /* $items["tbc_external_review/reminder_all"] = array(
             "title" => "TBC/ ER Reviewer Reminders",
             "description" => "Failed to complete review",
             "page callback" => "_er_reminder_page_all",   
@@ -185,32 +187,73 @@
             "page callback" => "_tbc_reviewer_reminder_page_all",   
             "access arguments" =>array("download tbc_external_review"),
             "type" => MENU_LOCAL_TASK
-        );
+        );*/
+          /* ADMIN SETTINGS */
+          $items['admin/settings/tbc_external_review'] = array(
+            'title' => 'TBC external review module mail Settings',
+            'description' => 'TBC external review module mail Settings',
+            'page callback' => 'drupal_get_form',
+            'page arguments' => array('tbc_external_review_settings_form'),
+            'access arguments' => array('access tbc_administrator_mail_settings'),
+            'type' => MENU_NORMAL_ITEM,
+            'file' => 'settings.inc',
+          );
         return $items;
     }
+    function tbc_external_review_permission(){
+        return array(
+             'access tbc_external_review' => array(
+             'title' => t('access For tbc external review '),
+             'restrict access' => TRUE,
+             ),
+             'administer tbc_external_review' => array(
+             'title' => t('administer tbc external review'),
+             'restrict access' => TRUE,
+             ),
+             'tbc_external_review_reminder_mail' => array(
+             'title' => t('tbc external review reminder mail'),
+             'restrict access' => TRUE,
+             ),
+             'download tbc_external_review' => array(
+             'title' => t('download tbc external review'),
+             'restrict access' => TRUE,
+             ),
+             'access tbc_er_assign_add_remove_books' => array(
+             'title' => t('access tbc er assign add remove books'),
+             'restrict access' => TRUE,
+             ),
+             'access tbc_administrator_mail_settings' => array(
+             'title' => t('access tbc administrator mail settings'),
+             'restrict access' => TRUE,
+             ),
+             
+        );
+        
+    
+    }
 
-    function tbc_external_review_perm() {
+   /*  function tbc_external_review_perm() {
         return array(
             "access tbc_external_review", "administer tbc_external_review", "tbc_external_review_reminder_mail",
             "download tbc_external_review", "access tbc_er_assign_add_remove_books"
         );
     }
 
-    /*
+   
         book selection form
         {external_review_details} database required.
         fields: preference_id, uid, status
         status = 1 for selected.
     */
-    function tbc_external_review_form($form_state) {
+    function tbc_external_review_form($form, &$form_state) {
         global $user;
         $form = array();
         
         /* create multiple checkboxes from database */
         $result = remaining_books();
-        $num_rows = mysql_num_rows($result);
+        $num_rows = $result->rowCount();
         if($num_rows > 0) {
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
                 $form[$row->id] = array(
                     "#type" => "checkbox",
                     "#title" => t("{$row->book} by {$row->author} ( ed: {$row->edition}, pub: {$row->year})"),
@@ -230,7 +273,7 @@
         $result = remaining_books();
         $count = 0;
         $selections = array();
-        while($row = db_fetch_object($result)) {
+        while($row = ($result->fetchObject)) {
             if($form_state["values"][$row->id] == 1) {
                 $count++;
                 array_push($selections, $row->id);
@@ -249,8 +292,16 @@
         
         $selections = $form_state["values"]["selections"];
         foreach($selections as $selection) {
-            $query = "update {external_review_details} set uid = {$user->uid}, status = 1, review = 1  where preference_id = {$selection}";
-            db_query($query);
+           /*$query = "update {external_review_details} set uid = {$user->uid}, status = 1, review = 1  where preference_id = {$selection}";
+            db_query($query);*/
+            $query = db_update('external_review_details');
+            $query->fields(array(
+              'uid' => $user->uid,
+              'status' => 1,
+              'review' => 1,
+            ));
+            $query->condition('preference_id', $selection);
+            $num_updated = $query->execute();
         }
         drupal_set_message("<strong>Your selections have been updated sucessfully.</strong>", "status");
     }
@@ -262,7 +313,8 @@
         $remaining = remaining_books_count();
         if($remaining > 0) {
             $page_content = "You have <strong>{$remaining}</strong> selections remaining:";
-            $page_content .= drupal_get_form("tbc_external_review_form");
+            $tbc_external_review_form = drupal_get_form("tbc_external_review_form");
+            $page_content .= drupal_render($tbc_external_review_form);
         } else {
             $page_content = "Thanks for your selections.";
         }
@@ -273,15 +325,26 @@
     function remaining_books_count() {
         global $user;
         /*finding how many books the user can select */
-        $query = "select count(*) from {external_review_details} where uid = {$user->uid}";
-        $result = db_query($query);
-        $row = db_fetch_array($result);
+       // $query = "select count(*) from {external_review_details} where uid = {$user->uid}";
+       // $result = db_query($query);
+        $query = db_select('external_review_details');
+        $query->addExpression('count(*)');
+        $query->condition('uid', $user->uid);
+        $result = $query->execute();
+        //$row = db_fetch_array($result);        
+        //$remaining = 6 - $row["count(*)"];
+        $row = $result->fetchAssoc();
         $remaining = 6 - $row["count(*)"];
+        
+       /* while ($row = $result->fetchAssoc()) {
+        $remaining = 6 - $row["count(*)"];
+
+        }*/
         return $remaining;
     }
 
     function remaining_books() {
-        $query = "select * from {textbook_companion_preference} where id in (select preference_id from {external_review_details} where status = 0)";
+        $query = "select * from {textbook_companion_preference} where id in (select preference_id from {external_review_details} where status = 0)";        
         $result = db_query($query);
         return $result;
     }
@@ -291,19 +354,19 @@
             considering number will be not more than 10 
             eg: 11th, 21st - Not required
         */
-        $output = "";                                                               
-        switch ($number) {                                                             
-            case "1":                                                               
-                $output = $number. "st";                                              
-                break;                                                              
-            case "2":                                                               
-                $output = $number. "nd";                                              
-                break;                                                              
-            case "3":                                                               
-                $output = $number. "rd";                                              
-                break;                                                              
-            default:                                                                
-                $output = $number. "th";                                              
+        $output = ""; 
+        switch ($number) { 
+            case "1": 
+                $output = $number. "st"; 
+                break; 
+            case "2": 
+                $output = $number. "nd"; 
+                break; 
+            case "3":
+                $output = $number. "rd"; 
+                break;
+            default:
+                $output = $number. "th"; 
                 break;                                                              
         }                                                                           
         return $output;
@@ -339,16 +402,21 @@
         external reviewer profile form,
         save the data in {external_review_profile}
     */
-    function tbc_external_review_profile_form() {
+    function tbc_external_review_profile_form($form, &$form_state) {
         global $user;
         $form = array();
         /* populating the form with previous entry details if exists */
-        $query = "
+        /*$query = "
             SELECT * FROM {external_review_profile} 
             WHERE uid = %d
         ";
-        $result = db_query($query, $user->uid);
-        $row = db_fetch_array($result);
+        $result = db_query($query, $user->uid);*/
+        //$row = db_fetch_array($result);
+        $query = db_select('external_review_profile');
+        $query->fields('external_review_profile');
+        $query->condition('uid', $user->uid);
+        $result = $query->execute();
+        $row =  $result->external_review_profile;
         
         $form["first_name"] = array(
             "#type" => "textfield",
@@ -441,13 +509,17 @@
         $val = $form_state["values"];
         
         /* checking whether the user already has an entry */
-        $query = "select uid from {external_review_profile} where uid = %d";
-        $result = db_query($query, $user->uid);
-        $has_entry = mysql_num_rows($result);
+        /*$query = "select uid from {external_review_profile} where uid = %d";
+        $result = db_query($query, $user->uid);*/
+        $query = db_select('external_review_profile');
+        $query->fields('external_review_profile', array('uid'));
+        $query->condition('uid', $user->uid);
+        $result = $query->execute();
+        $has_entry = $result->rowCount();
         
         if($has_entry) {
             /* update the existing entry */
-            $query = "update {external_review_profile} 
+            /*$query = "update {external_review_profile} 
                     set 
                     first_name = '%s', last_name = '%s', designation = '%s', 
                     university = '%s', phone = '%s', email = '%s', alt_email = '%s',
@@ -458,10 +530,25 @@
                 $query, $val["first_name"], $val["last_name"], $val["designation"], $val["university"],
                 $val["phone"], $val["email"], $val["alt_email"], $val["address"], $val["description"],
                 $user->uid
-            );
+            );*/
+            $query = db_update('external_review_profile');
+            $query->fields(array(
+              'first_name' => $val["first_name"],
+              'last_name' => $val["last_name"],
+              'designation' => $val["designation"],
+              'university' => $val["university"],
+              'phone' => $val["phone"],
+              'email' => $val["email"],
+              'alt_email' => $val["alt_email"],
+              'address' => $val["address"],
+              'description' => $val["description"],
+              'active' => 0,
+            ));
+            $query->condition('uid', $user->uid);
+            $result = $query->execute();
         } else {
             /* create a new entry */
-            $query = "insert into {external_review_profile} 
+           /* $query = "insert into {external_review_profile} 
                     (uid, first_name, last_name, designation, university, phone, email, alt_email, address, description) 
                     values
                     (%d, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
@@ -469,7 +556,26 @@
             $result = db_query(
                 $query, $user->uid, $val["first_name"], $val["last_name"], $val["designation"], $val["university"],
                 $val["phone"], $val["email"], $val["alt_email"], $val["address"], $val["description"]
+            );*/
+            $query = "insert into {external_review_profile} 
+                    (uid, first_name, last_name, designation, university, phone, email, alt_email, address, description, active) 
+                    values
+                    (:uid, :first_name, :last_name, :designation, :university, :phone, :email, :alt_email, :address, :description, :active) 
+            ";
+            $args = array(
+                           ':uid' => $user->uid,
+                           ':first_name' => $val["first_name"],
+                           ':last_name' => $val["last_name"],
+                           ':designation' => $val["designation"],
+                           ':university' => $val["university"],
+                           ':phone' => $val["phone"],
+                           ':email' => $val["email"],
+                           ':alt_email' => $val["alt_email"],
+                           ':address' => $val["address"],
+                           ':description' => $val["description"],
+                           ':active' => 0,
             );
+             $result = db_query($query, $args);
         }
         if($result) {
             drupal_set_message("Profile updated successfully. Thank you.", "status");
@@ -482,20 +588,26 @@
 
     function tbc_external_review_profile_all() {
         $page_content = "";
-        $page_content .= drupal_get_form("tbc_external_review_profile_form");
+        $tbc_external_review_profile_form = drupal_get_form("tbc_external_review_profile_form");
+        $page_content .= drupal_render($tbc_external_review_profile_form);
+        
         return $page_content;
     }
 
     function tbc_external_review_view_reviewers_all() {
         $page_content = "";
-        $query = "
+        /*$query = "
             SELECT * FROM {external_review_profile}
             WHERE active = 1
         ";
-        $result = db_query($query);
+        $result = db_query($query);*/
+        $query = db_select('external_review_profile');
+        $query->fields('external_review_profile');
+        $query->condition('active', 1);
+        $result = $query->execute();
         
         $page_content .= "<ul>";
-        while($row = db_fetch_object($result)) {
+        while($row = $result->fetchObject()) {
             $page_content .= "<li>";
             $page_content .= l("{$row->first_name} {$row->last_name}", "tbc_external_review/reviewer_selections/{$row->uid}");
             $page_content .= "</li>";
@@ -507,18 +619,24 @@
     function tbc_external_review_reviewer_selections_all($uid=0) {
         $page_content = "";
         
-        $query = "SELECT * FROM {external_review_profile} WHERE uid = %d";
-        $result = db_query($query, $uid);
-        $row = db_fetch_object($result);
+       /* $query = "SELECT * FROM {external_review_profile} WHERE uid = %d";
+        $result = db_query($query, $uid);*/
+        $query = db_select('external_review_profile');
+        $query->fields('external_review_profile');
+        $query->condition('uid', $uid);
+        $result = $query->execute();
+        $row = $result->fetchObject();
         $page_content .= "Books selected by <strong>{$row->first_name} {$row->last_name}</strong>";
         $query = "
             SELECT * FROM {textbook_companion_preference} WHERE id IN 
-            (SELECT preference_id FROM {external_review_details} WHERE uid = %d)
+            (SELECT preference_id FROM {external_review_details} WHERE uid = :uid)
         ";
-        $result = db_query($query, $uid);
+        $result = db_query($query, array(':uid' =>$uid));
+        
+
         
         $page_content .= "<ol>";
-        while($row = db_fetch_object($result)) {
+        while($row =$result->fetchObject()) {
             $page_content .= "<li>";
             $page_content .= t("{$row->book} by {$row->author} ( ed: {$row->edition}, pub: {$row->year})");
             $page_content .= "</li>";
@@ -532,16 +650,17 @@
         $page_content = "";
         $query = "
             SELECT * FROM {textbook_companion_preference} WHERE id IN 
-            (SELECT preference_id FROM {external_review_details} WHERE uid = %d)
+            (SELECT preference_id FROM {external_review_details} WHERE uid = :uid)
         ";
-        $result = db_query($query, $user->uid);
+        $result = db_query($query, array(':uid' => $user->uid));
+       
         
         $headers = array(
             "Book", "Author",
             "Edition", "Action",
         );
         $rows = array();
-        while($row = db_fetch_object($result)) {
+        while($row = $result->fetchObject()) {
             $item = array(
                 "{$row->book}",
                 "{$row->author}",
@@ -550,19 +669,24 @@
             );
             array_push($rows, $item);
         }
-        $page_content .= theme("table", $headers, $rows);
+       // $page_content .= theme("table", $headers, $rows);
+        $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
         return $page_content;
     }
     
     function tbc_external_review_comments_all() {
         global $user;
         $page_content = "";
-        $page_content = "* Use this form to notify only examples that have errors.";
-        $page_content .= drupal_get_form("tbc_external_review_comment_form");
+        $page_content .= "* Use this form to notify only examples that have errors.";
+        $tbc_external_review_comment_form = drupal_get_form("tbc_external_review_comment_form");
+        $page_content .= drupal_render($tbc_external_review_comment_form);
         return $page_content;
     }
 
     function tbc_external_review_comments_view_all($preference_id = 0, $review = 0) {
+  //  var_dump('okee');
+  //  die;
+          
         global $user;
         $page_content = "";
         $page_content .= "<br>";
@@ -570,16 +694,25 @@
         /* creating review links */
         $query = "
             SELECT DISTINCT(review) FROM external_review_comments
-            WHERE preference_id = %d
-            ORDER BY review DESC "; $result = db_query($query, $preference_id); $tmp = $review; // for active class in case of 0
-        while($row = db_fetch_object($result)) {
+            WHERE preference_id = :preference_id
+            ORDER BY review DESC "; 
+            $result = db_query($query, array(':preference_id' => $preference_id));
+                        
+            $tmp = $review; // for active class in case of 0
+       while($row = $result->fetchObject()) {
             $option["attributes"]["class"] = "review-links";
             if($review == $row->review) {
-                $option["attributes"]["class"] .= " active";
+                if(!is_array($option['attributes']['class'])){
+                     $option['attributes']['class'] = (array)$option['attributes']['class'];
+                }
+                     $option['attributes']['class'][] .= " active";
             } else if($tmp == 0) {
-                $option["attributes"]["class"] .= " active";
-                $tmp = -1;
-            }
+                 if(!is_array($option['attributes']['class'])){
+                     $option['attributes']['class'] = (array)$option['attributes']['class'];
+                 }
+                     $option['attributes']['class'][] .= " active";
+                     $tmp = -1;
+             }
             $page_content .= l(
                 suffix($row->review) . "review", 
                 "tbc_external_review/comments/view/{$preference_id}/{$row->review}",
@@ -589,68 +722,134 @@
         $page_content .= "<br><br><hr>";
         if($preference_id) {
             if($review) {
-                $query = "
+               $query = "
                     SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
                     LEFT JOIN textbook_companion_chapter cha ON cha.id = erc.chapter_id 
                     LEFT JOIN textbook_companion_example exa ON exa.id = erc.example_id
-                    WHERE erc.preference_id = %d AND erc.review = %d
+                    WHERE erc.preference_id = :preference_id AND erc.review =:review
                     ORDER BY erc.time DESC
+                    
                 ";
-                $result = db_query($query,$preference_id, $review);
+             
+             /* $query = "
+		    SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
+                    LEFT JOIN textbook_companion_chapter cha ON erc.chapter_id = cha.id 
+                    LEFT JOIN textbook_companion_example exa ON cha.id = exa.chapter_id
+                    WHERE erc.preference_id = :preference_id AND erc.review =:review 
+		    ORDER BY erc.time DESC 
+			";*/
+	      /* $query =" 
+   			SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
+                    LEFT JOIN textbook_companion_chapter cha ON erc.chapter_id = cha.id 
+                    LEFT JOIN textbook_companion_example exa ON cha.id = exa.chapter_id AND exa.id = erc.example_id
+                    WHERE erc.preference_id = :preference_id AND erc.review = :review
+                    ORDER BY erc.time DESC
+			";  */
+          /*   
+		
+		$query = db_select('external_review_comments', 'erc');
+		$query->fields('erc', array('*'));
+		$query->fields('chapter', array('cha.number'));
+		$query->fields('example', array('exa.number'));
+		$query->leftJoin('textbook_companion_chapter', 'cha', 'cha.id = erc.chapter_id');
+		$query->leftJoin('textbook_companion_example', 'exa', 'exa.id = erc.example_id');
+		$query->condition('erc.preference_id', $preference_id);
+		$query->condition('erc.review', $review);
+		$query->orderBy('erc.time', 'DESC');
+		$result = $query->execute(); 
+	*/	
+                $result = db_query($query,array(':preference_id' => $preference_id, ':review'=> $review));
+             // var_dump("me call ho raha hu..");die; 
             } else {
-                $query = "
+            
+               $query = "
+                
                     SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
                     LEFT JOIN textbook_companion_chapter cha ON cha.id = erc.chapter_id 
                     LEFT JOIN textbook_companion_example exa ON exa.id = erc.example_id
-                    WHERE erc.preference_id = %d AND review = (
-                        SELECT MAX(review) FROM external_review_comments WHERE preference_id = %d
+                    WHERE erc.preference_id = :pref_id AND review = (
+                        SELECT MAX(review) FROM external_review_comments WHERE preference_id = :preference_id
                     )
                     ORDER BY erc.time DESC
-                ";
-                $result = db_query($query, $preference_id, $preference_id);
+                    
+                ";/*
+		$query = "   SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
+                    LEFT JOIN textbook_companion_chapter cha ON erc.chapter_id = cha.id 
+                    LEFT JOIN textbook_companion_example exa ON cha.id = exa.chapter_id
+                    WHERE erc.preference_id = :pref_id AND review = (
+                        SELECT MAX(review) FROM external_review_comments WHERE preference_id = :preference_id
+                    )
+                    ORDER BY erc.time DESC
+
+
+			";*/
+                
+               $result = db_query($query, array(':pref_id' =>$preference_id, ':preference_id' => $preference_id));
+             // var_dump("nahi me call ho raha hu..");die; 
             }
+            
             $headers = array(
                 "Chapter", "Example",
                 "Time", "Action"
             );
+            
             $rows = array();
-            while($row = db_fetch_object($result)) {
-                $options = array(
+            while($row = $result->fetchObject()) {
+              /*  $options = array(
                     /* # linking in drupal l() */
-                    "fragment" => " ",
+                 /*   "fragment" => " ",
                     "external" => TRUE,
                     "attributes" => array(
                         "class" => "view-comment",
                         "data-comment" => "{$row->id}",
                     )
-                );
+                );*/
+                
                 $item = array(
                     "{$row->chapter}",
                     "{$row->example}",
                     "{$row->time}",
-                    l("View", "", $options),
+                   //l("View", "", $options),
+                     l("View", "", array(  "fragment" => " ",
+                        "external" => TRUE,"attributes" => array(                      
+                        "id" => "popup_window",
+                        "data-comment" => "{$row->id}",
+                    ))),
                 );
                 array_push($rows, $item);
             }
-            $page_content .= theme("table", $headers, $rows);
-            $page_content .= "<div id='lightbox-wrapper'>";
-            $page_content .= "<div id='lightbox-inner'></div></div> ";
+           // $page_content .= theme("table", $headers, $rows);
+            $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
+           
+            //$page_content .= "<div id='lightbox-form' style='display:none'>";
+            //$page_content .= "<div id='lightbox-inner'></div></div> ";
+            $page_content .= "<div id='example-popup' class='popup'>
+                                    <div class='popup-body'>
+                                        <span class='popup-exit'></span>
+                                            <div id = 'popup-content' class='popup-content'>
+                                            </div>
+                                    </div>
+                            </div>";
+            $page_content .= "<div class='popup-overlay'></div>";
+            
+            
         } else {
-            $query = "
+           $query = "
                 SELECT * FROM textbook_companion_preference
                 WHERE id IN (
                     SELECT preference_id FROM external_review_details 
-                    WHERE uid = %d
+                    WHERE uid = :uid
                 )
             ";
-            $result = db_query($query, $user->uid);
+            $result = db_query($query, array(':uid' => $user->uid));
+            
             $headers = array(
                 "Book", "Author",
                 "Action"
             );
             $rows = array();
             
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
                 $item = array(
                     "{$row->book}",
                     "{$row->author}",
@@ -658,42 +857,58 @@
                 );
                 array_push($rows, $item);
             }
-            $page_content = theme("table", $headers, $rows);
+            //$page_content = theme("table", $headers, $rows);
+            $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
         }
         return $page_content;
     }
 
-    function tbc_external_review_comments_captions_form($form_state, $preference_id) {
+    function tbc_external_review_comments_captions_form($form,&$form_state, $preference_id) {
         $form = array();
-        /*fetching pre-existing caption entry if any */
+       
+       /* fetching pre-existing caption entry if any */
         $query = "
             SELECT examples FROM external_review_captions
-            WHERE preference_id = {$preference_id}
+            WHERE preference_id = {:preference_id}
             ";
-        $result = db_query($query);
-        $row = db_fetch_object($result);
+        $args = array(':preference_id' => $preference_id);
+        $result = db_query($query, $args);        
+        $row = $result->fetchObject();
         $examples = $row->examples;
         $examples = explode(",", $examples);
         
-        /* fetching chapter and examples */
+         /*fetching chapter and examples */
         $c_query = "
             SELECT * FROM textbook_companion_chapter
-            WHERE preference_id = {$preference_id}
+            WHERE preference_id = {:preference_id}
             ORDER BY number
         ";
-        $c_result = db_query($c_query);
-        while($c_row = db_fetch_object($c_result)) {
+        $c_result = db_query($c_query, array(':preference_id' => $preference_id));
+       /*
+        $query = db_select('textbook_companion_chapter');
+        $query->fields('textbook_companion_chapter');
+        $query->condition('preference_id', $preference_id);
+        $query->orderBy('number', 'ASC');
+        $c_result = $query->execute(); */
+        while($c_row = $c_result->fetchObject()) {
             $form[$c_row->id] = array(
                 "#type" => "fieldset",
                 "#title" => "Chapter {$c_row->number} ({$c_row->name})"
             );
-            $e_query = "
+           /* $e_query = "
                 SELECT * FROM textbook_companion_example
                 WHERE chapter_id = {$c_row->id}
                 ORDER BY number
             ";
+            
             $e_result = db_query($e_query);
-            while($e_row = db_fetch_object($e_result)) {
+            */
+            $query = db_select('textbook_companion_example');
+            $query->fields('textbook_companion_example');
+            $query->condition('chapter_id', $c_row->id);
+            $query->orderBy('number', 'ASC');
+            $e_result = $query->execute();
+            while($e_row = $e_result->fetchObject()) {
                 $form[$c_row->id][$e_row->id] = array(
                     "#type" => "checkbox",
                     "#title" => $e_row->caption,
@@ -727,33 +942,49 @@
         /* inserting or updating based on row existence */
         $query = "
             SELECT id FROM external_review_captions
-            WHERE preference_id = {$preference_id} 
+            WHERE preference_id = {:preference_id} 
             AND review = (
                 SELECT review FROM external_review_details
-                WHERE preference_id = {$preference_id}
+                WHERE preference_id = {:preference_id}
             )
         ";
-        $result = db_query($query);
-        $num_rows = mysql_num_rows($result);
+        $args = array(':preference_id' => $preference_id );
+        $result = db_query($query, $args);
+       /*
+        $query = db_select('external_review_captions');
+        $query->fields('id');
+        $query->condition('preference_id', $preference_id);
+
+        $subquery = db_select('external_review_details');
+        $subquery->fields('review');
+        $subquery->condition('preference_id', $preference_id);
+        $query->condition('review', $subquery);
+
+        $result = $query->execute();*/
+
+        $num_rows = $result->rowCount();
         if($num_rows) {
             /* updating the existing */
             $query = "
                 UPDATE external_review_captions
-                SET examples = '{$examples}'
-                WHERE preference_id = {$preference_id}
+                SET examples = '{:examples}'
+                WHERE preference_id = {:preference_id}
                 AND review = (
                     SELECT review FROM external_review_details
-                    WHERE preference_id = {$preference_id}
+                    WHERE preference_id = {:preference_id}
                 )
             ";
-            $result = db_query($query);
+           $args = array(':examples'=> $examples,':preference_id' => $preference_id );
+           $result = db_query($query, $args);
+            
+            
             if($result) {
                 drupal_set_message("Caption error list updated successfully", "status");
             } else {
                 drupal_set_message("Caption error list updation failed.", "error");
             }
         } else {
-            /* creating a new entry */
+            /* creating a new entry 
             $query = "
                 INSERT INTO external_review_captions
                 (preference_id, examples, review)
@@ -765,7 +996,26 @@
                     )
                 )
             ";
-            $result = db_query($query);
+            $result = db_query($query);*/
+            $query = "
+                INSERT INTO external_review_captions
+                (preference_id, examples, review)
+                VALUES
+                (
+                    :preference_id, :examples, (
+                        SELECT review FROM external_review_details
+                        WHERE preference_id = :preference_id
+                    )
+                )
+            ";
+            $args = array(
+                    ':preference_id' => $preference_id,
+                    ':examples' => $examples, 
+                    );
+            
+            $result = db_query($query, $args);
+            
+            
             if($result) {
                 drupal_set_message("Caption error list updated successfully.", "status");
             } else {
@@ -779,21 +1029,22 @@
         $page_content = "";
         if($preference_id) {
             $page_content .= "<p>* Check mark all the <strong>captions that do not make sense</strong>.</p>";
-            $page_content .= drupal_get_form("tbc_external_review_comments_captions_form", $preference_id);
+            $tbc_external_review_comments_captions_form = drupal_get_form("tbc_external_review_comments_captions_form", $preference_id);
+            $page_content .= drupal_render($tbc_external_review_comments_captions_form);
         }
         else {
             $query = "
                 SELECT * FROM {textbook_companion_preference} WHERE id IN 
-                (SELECT preference_id FROM {external_review_details} WHERE uid = %d)
+                (SELECT preference_id FROM {external_review_details} WHERE uid =:uid)
                 ";
-            $result = db_query($query, $user->uid);
-            
+            $result = db_query($query, array(':uid' => $user->uid));
+                        
             $headers = array(
                 "Book", "Edition",
                 "Action",
             );
             $rows = array();
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
                 $item = array(
                     "{$row->book}<br>{$row->author}",
                     "{$row->edition}",
@@ -801,142 +1052,227 @@
                 );
                 array_push($rows, $item);
             }
-            $page_content .= theme("table", $headers, $rows);
+            //$page_content .= theme("table", $headers, $rows);
+            $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
         }
         return $page_content;
     }
 
-    function tbc_external_review_comment_form($form_state) {
+    function tbc_external_review_comment_form($form,&$form_state) {
+   
+    $options_first = _ajax_tbc_review_get_books_list($user->uid);
+    $selected = isset($form_state['values']['book']) ? $form_state['values']['book'] : key($options_first);
         $form = array();
         global $user;
         global $base_url;
-        $form["wrapper"] = array(
-            "#type" => "fieldset",
-            "#title" => t("
-                Reviewer comments
-                <img id='ajax-loader' src='" . "{$base_url}/" . drupal_get_path("module", "tbc_external_review") ."/img/throbber.gif'>
-            "),
-            "#prefix" => "<div id='comment-form-wrapper'>",
-            "#suffix" => "</div>",
-        );
-        $form["wrapper"]["book"] = array(
+     
+        $form["book"] = array(
             "#type" => "select",
             "#title" => t("Please select the book."),
-            "#options" => _get_books($user->uid),
+            "#options" => _ajax_tbc_review_get_books_list($user->uid),           
+            "#default_value" => $selected,
+            '#ajax' => array(
+		          'callback' => 'ajax_tbc_review_chapter_list_callback',
+		      ),
+		     '#validated' => TRUE,
+		    
         );
-        $form["wrapper"]["chapter"] = array(
-            "#type" => "select",
+        $form["chapter"] = array(
+            "#type" => "select",           
             "#title" => t("Please select the chapter"),
+            '#prefix' => '<div id="ajax_tbc_review_select_chapter_lists">',
+				'#suffix' => '</div>',
+				'#validated' => TRUE,
+				'#ajax' => array(
+		          'callback' => 'ajax_tbc_review_example_list_callback',
+		      ),
+            '#options' => _ajax_tbc_review_get_chapter_list($selected),
+            '#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["example"] = array(
-            "#type" => "select",
+        $form["example"] = array(
+            "#type" => "select",            
+            '#prefix' => '<div id="ajax_tbc_review_select_example_lists">',
+				'#suffix' => '</div>',
             "#title" => t("Please select the example"),
+            '#validated' => TRUE,
+            '#ajax' => array(
+		          'callback' => 'ajax_tbc_review_example_error_callback',
+		      ),
+           // "#options" => _get_books($user->uid),
+           '#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"] = array(
+        
+        
+       // if($form_state['values']['example'] > 0){
+        $form["error"] = array(
             "#type" => "fieldset",
             "#title" => "Types of errors found",
             "#prefix" => "<div id='comment-error-wrapper'>",
             "#suffix" => "</div>",
+            '#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["ncf"] = array(
+        $form["error"]["ncf"] = array(
             "#type" => "radios",
             "#title" => t("Naming convention followed? (Checklist point 1, 2 and 4)"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+            //'#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["eit"] = array(
+        $form["error"]["eit"] = array(
             "#type" => "radios",
             "#title" => t("Error in textbook mentioned as comment?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+          // '#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["axl"] = array(
+        $form["error"]["axl"] = array(
             "#type" => "radios",
             "#title" => t("Axes labeled?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+            //'#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["sua"] = array(
+        $form["error"]["sua"] = array(
             "#type" => "radios",
             "#title" => t("Symbols used are appropiate?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
+           
             ),
+           // '#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["sfu"] = array(
+        $form["error"]["sfu"] = array(
             "#type" => "radios",
             "#title" => t("Scilab functions used?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+           //'#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["sum"] = array(
+        $form["error"]["sum"] = array(
             "#type" => "radios",
             "#title" => t("Solved using Matlab in textbook?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+           //'#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["aci"] = array(
+        $form["error"]["aci"] = array(
             "#type" => "radios",
             "#title" => t("Appropriate comments included as mentioned in checklist point 7?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+          // '#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["auu"] = array(
+        $form["error"]["auu"] = array(
             "#type" => "radios",
             "#title" => t("Appropriate units used as given in the textbook?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+          //'#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["teo"] = array(
+        $form["error"]["teo"] = array(
             "#type" => "radios",
             "#title" => t("Typographical errors in output and/or comments?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+          //'#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),  
         );
-        $form["wrapper"]["error"]["amt"] = array(
+        $form["error"]["amt"] = array(
             "#type" => "radios",
             "#title" => t("Answers matching with the textbook?"),
             "#options" => array(
                 t("Yes"),
                 t("No"),
             ),
+         //'#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),     
         );
-        $form["wrapper"]["error"]["comment"] = array(
+        $form["error"]["comment"] = array(
             "#type" => "textarea",
             "#title" => t("Other commment? (if any)"),
+           //'#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),     
         );
-        $form["wrapper"]["submit"] = array(
+        $form["error"]["submit"] = array(
             "#type" => "submit",
-            "#value" => "Submit Comment"
+            "#value" => "Submit Comment",
+           // '#states' => array('invisible' => array(':input[name="book"]' => array('value' => 0),),),     
         );
+       // }
         return $form;
     }
+  
     
-    function tbc_external_review_comment_form_validate($form, &$form_state) {
-        // for future use
+    function ajax_tbc_review_chapter_list_callback($form, $form_state) {
+        $commands = array();
+        $book_default_value = $form_state['values']['book'];
+   
+          if($book_default_value != 0){    
+               $form["chapter"]["#options"] = _ajax_tbc_review_get_chapter_list($book_default_value);
+	            $commands[] = ajax_command_replace('#ajax_tbc_review_select_chapter_lists', drupal_render($form['chapter']));
+	            $commands[] = ajax_command_html('#ajax_tbc_review_select_example_lists','');
+	            $commands[] = ajax_command_html('#comment-error-wrapper','');
+    
+         }else{      
+	           $commands[] = ajax_command_html('#ajax_tbc_review_select_chapter_lists','');
+	           $commands[] = ajax_command_html('#ajax_tbc_review_select_example_lists','');
+	           $commands[] = ajax_command_html('#comment-error-wrapper','');
+   }
+     return array('#type' => 'ajax', '#commands' => $commands);
     }
+    
+    function ajax_tbc_review_example_list_callback($form, $form_state) {
+        $commands = array();
+        $chapter_default_value = $form_state['values']['chapter'];
+   
+          if($chapter_default_value != 0){    
+               $form["example"]["#options"] = _ajax_tbc_review_get_example_list($chapter_default_value);
+	            $commands[] = ajax_command_replace('#ajax_tbc_review_select_example_lists', drupal_render($form["example"]));
+	            $commands[] = ajax_command_html('#comment-error-wrapper',''); 
+         }else{
+	           $commands[] = ajax_command_html('#ajax_tbc_review_select_example_lists','');
+	           $commands[] = ajax_command_html('#comment-error-wrapper','');
+   }
+     return array('#type' => 'ajax', '#commands' => $commands);
+    }
+    
+    function ajax_tbc_review_example_error_callback($form, $form_state) {
+        $commands = array();
+        $example_default_value = $form_state['values']['example'];
+   
+          if($example_default_value != 0){    
+               $form["error"]['#states'] = array('invisible' => array(':input[name="book"]' => array('value' => 0),),);
+	            $commands[] = ajax_command_replace('#comment-error-wrapper', drupal_render($form["error"]));
+    
+         }else{
+	          // $commands[] = ajax_command_html('#ajax_tbc_review_select_example_lists','');
+	           $commands[] = ajax_command_html('#comment-error-wrapper','');
+   }
+     return array('#type' => 'ajax', '#commands' => $commands);
+    }
+     
+    /*function tbc_external_review_comment_form_validate($form, &$form_state) {
+        // for future use
+    }*/
 
     function tbc_external_review_comment_form_submit($form, &$form_state) {
         global $user;
         $v = $form_state["values"];
-        $query = "
+        /*$query = "
             INSERT INTO {external_review_comments}
             (uid, preference_id, chapter_id, example_id, ncf, eit, axl, sua, sfu, sum, aci, auu, teo, amt, comment, review)
             VALUES
@@ -951,7 +1287,43 @@
             $query, $user->uid, $v["book"], $v["chapter"], $v["example"], 
             $v["ncf"], $v["eit"], $v["axl"], $v["sua"], $v["sfu"], $v["sum"], 
             $v["aci"], $v["auu"], $v["teo"], $v["amt"], $v["comment"], $v["book"]
-        );
+        );*/
+        
+        $query = "
+            INSERT INTO {external_review_comments}
+            (uid, preference_id, chapter_id, example_id, ncf, eit, psi, axl, sua, sfu, sum, aci, auu, teo, amt, comment, review, hidden)
+            VALUES
+            (
+                :uid, :preference_id, :chapter_id, :example_id, :ncf, :eit, :psi, :axl, :sua, :sfu, :sum, :aci, :auu,
+                 :teo, :amt, :comment,  
+                (
+                    SELECT review FROM external_review_details WHERE preference_id = :pref_id
+                ), :hidden
+            )
+        ";
+        $args = array(
+                ':uid' => $user->uid,
+                ':preference_id' => $v["book"],
+                ':chapter_id' => $v["chapter"],
+                ':example_id' => $v["example"], 
+                ':ncf' => $v["ncf"],
+                ':eit' => $v["eit"],
+                ':psi' => 0,
+                ':axl' => $v["axl"],
+                ':sua' => $v["sua"],
+                ':sfu' => $v["sfu"],
+                ':sum' => $v["sum"],
+                ':aci' => $v["aci"],
+                ':auu' => $v["auu"],
+                ':teo' => $v["teo"],
+                ':amt' => $v["amt"],
+                ':comment' => $v["comment"],
+                //':review' => 0,
+                ':hidden' => 0,
+                ':pref_id' => $v["book"],
+                );
+       $result = db_query($query, $args);
+        
         drupal_set_message(t("Comment submited successfully"), "status");
     }
 
@@ -966,36 +1338,53 @@
         
         $data = "";
         if($item == "book" && $key) {
-            $query = "select * from {textbook_companion_chapter} where preference_id = %d order by number";
-            $result = db_query($query, $key);
+            /*$query = "select * from {textbook_companion_chapter} where preference_id = %d order by number";
+            $result = db_query($query, $key);*/
+            $query = db_select('textbook_companion_chapter');
+            $query->fields('textbook_companion_chapter');
+            $query->condition('preference_id', $key);
+            $query->orderBy('number', 'ASC');
+            $result = $query->execute();
             
             $data .= "<option value='0'>Please select the chapter.</option>";
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
                 $data .= "<option value='{$row->id}'>{$row->number} {$row->name}</option>";
             }
         } else if($item == "chapter" && $key) {
-            $query = "select * from {textbook_companion_example} where chapter_id = %d order by number";
-            $result = db_query($query, $key);
-            
+            /*$query = "select * from {textbook_companion_example} where chapter_id = %d order by number";
+            $result = db_query($query, $key);*/
+            $query = db_select('textbook_companion_example');
+            $query->fields('textbook_companion_example');
+            $query->condition('chapter_id', $key);
+            $query->orderBy('number', 'ASC');
+            $result = $query->execute();
             $data .= "<option value='0'>Please select the example.</option>";
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
                 $data .= "<option value='{$row->id}'>{$row->number} {$row->caption}</option>";
             }
         } else if($item == "comment" && $key) {
-            $query = "
+            /*$query = "
                 SELECT * FROM external_review_comments erc 
                 LEFT JOIN textbook_companion_example_files tcef 
                 ON (erc.example_id = tcef.example_id AND tcef.filetype = 'S')
                 WHERE erc.id = %d
             ";
-            $result = db_query($query, $key);
-            $row = db_fetch_object($result);
+            $result = db_query($query, $key);*/
+            
+            $query = db_select('external_review_comments', 'erc');
+            $query->fields('erc');
+            $query->leftJoin ("textbook_companion_example_files", "tcef", "(erc.example_id = tcef.example_id AND tcef.filetype = 'S')");
+            $query->fields('tcef');
+            $query->condition('erc.id', $key);
+            $result = $query->execute();
+            $row = $result->fetchObject();
             
             /* fetching example file data */
             $uploads_dir = $_SERVER['DOCUMENT_ROOT'] . base_path() . "uploads/";
             $example_path = $uploads_dir . $row->filepath;
-            $example = file_get_contents($example_path);
-            
+            $example = file_get_contents(drupal_realpath($example_path));
+            //var_dump($example_path);
+                     
             $data .= "<table><th>Type of Error</th><th>Status</th>";
             $data .= "<tr><td>Naming convention followed?</td><td>" . _bool($row->ncf) . "</td></tr>";
             $data .= "<tr><td>Error in textbook mentioned as comment?</td><td>" . _bool($row->eit) . "</td></tr>";
@@ -1010,31 +1399,60 @@
             $data .= "<tr><td>Answers matching with the textbook?</td><td>" . _bool($row->amt) . "</td></tr>";
             $data .= "<tr><td>Any Other Comment?</td><td>" . $row->comment . "</td></tr>";
             $data .= "</table>";
-            $data .= "<textarea style='width:100%; height:200px; background:#fafafa' readonly>";
+            $data .= "<textarea style=' background:#fafafa' readonly>";
             $data .= "{$example}</textarea>";
         } else if($item == "hide-show" && $key) {
-            $query = "
+           /* $query = "
                 UPDATE external_review_comments
                 SET hidden = !hidden
                 WHERE id = %d
             ";
             $result = db_query($query, $key);
+            */
+             $query = "
+                UPDATE external_review_comments
+                SET hidden = !hidden
+                WHERE id = :id
+            ";
+            $args = array(':id' => $key);
+            $result = db_query($query, $args);
+           
+           /* $query = db_update('external_review_comments');
+            $query->fields(array(
+              'hidden' => 'NOT hidden',
+            ));
+            $query->condition('id', $key);
+            $result = $query->execute();*/
+
             $data .= $key;
 
         } 
 
          else if($item == "hide-show1") {
              
-            $query = "
+           /* $query = "
                 UPDATE external_review_details
                 SET hidden = !hidden
                 WHERE preference_id = %d
             ";
-            $result = db_query($query,$key);
+            $result = db_query($query,$key);*/
+             $query = "
+                UPDATE external_review_details
+                SET hidden = !hidden
+                WHERE preference_id = :preference_id
+            ";
+              $args = array(':preference_id' =>  $key);
+            $result = db_query($query, $args);
+            /*$query = db_update('external_review_details', 'erd');
+            $query->fields('erd', array(
+            'erd.hidden' => 'NOT erd.hidden',
+                    ));
+           $query->condition('preference_id', $key);
+           $result = $query->execute();*/
             $data .= $key;
 
         }else if($item == "toggle" && $key) {
-            $query = "
+          /*  $query = "
                 UPDATE external_review_comments
                 SET hidden = !hidden
                 WHERE preference_id = %d AND (
@@ -1043,7 +1461,26 @@
                     amt != 1
                 )
             ";
-            $result = db_query($query, $key);
+            $result = db_query($query, $key);*/
+             $query = "
+                UPDATE external_review_comments
+                SET hidden = !hidden
+                WHERE preference_id = :preference_id AND (
+                    sfu != 1 AND
+                    sum != 0 AND
+                    amt != 1
+                )
+            ";
+            $args = array(':preference_id' =>  $key);
+            $result = db_query($query, $args);
+           /* $query = db_update('external_review_comments');
+            $query->fields(array(
+              'hidden' => '!hidden',
+            ));
+            $query->condition('preference_id',  $key);
+            $query->condition('sfu', 1, '<>');
+            $query->condition('amt', 1, '<>');
+            $result = $query->execute();*/
             $data .= $key;
         }
         
@@ -1052,57 +1489,70 @@
     }
 
     /* Comment form helper functions */
-    function _get_books($uid) {
+    function _ajax_tbc_review_get_books_list($uid) {
         $query = "select * from {textbook_companion_preference} where id in 
-            (select preference_id from {external_review_details} where uid = %d)
+            (select preference_id from {external_review_details} where uid = :uid) ORDER BY book ASC
         ";
-        $result = db_query($query, $uid);
+        $result = db_query($query, array(":uid" =>$uid));
+        
+       
         
         $books = array();
         $books[0] = "Please select a book";
-        while($row = db_fetch_object($result)) {
-            $books[$row->id] = $row->book;
+        while($row = $result->fetchObject()) {
+            $books[$row->id] = $row->book.' [ '.$row->author.' ]';
         }
         return $books;
     }
 
-    function tbc_external_review_status_edit_form($form_state, $preference_id=0) {
-        $query = "
+    function tbc_external_review_status_edit_form($form, &$form_state, $preference_id=0) {
+        /*$query = "
             SELECT * FROM external_review_details
             WHERE preference_id = %d
-        ";
-        $result = db_query($query, $preference_id);
-        $row = db_fetch_object($result);
+        ";        
+        $result = db_query($query, $preference_id);*/
+        /*$query = db_select('external_review_details');
+                 $query->fields('external_review_details');
+                 $query->condition('preference_id', $preference_id);
+        $result = $query->execute();*/
+                
+         $query = "
+            SELECT * FROM external_review_details
+            WHERE preference_id = {:preference_id}
+        "; 
+        $args = array(':preference_id' => $preference_id);       
+        $result = db_query($query,$args);        
+        $row = $result->fetchObject();
         
         $form = array();
-        $form["wrapper"] = array(
+        $form = array(
             "#prefix" => "<div id='status-edit-form'>",
             "#suffix" => "</div>"
         );
-        $form["wrapper"]["review"] = array(
+        $form["review"] = array(
             "#type" => "select",
             "#title" => "Review Number",
             "#options" => range(0,10),
-            "#default_value" => $row->review
+            "#default_value" => $row->review,
         );
-        $form["wrapper"]["status"] = array(
+        $form["status"] = array(
             "#type" => "radios",
             "#title" => "Status",
             "#options" => array(
                 t("Ongoing"),
                 t("Completed")
             ),
-            "#default_value" => $row->completed
+            "#default_value" => $row->completed,
         );
-        $form["wrapper"]["preference_id"] = array(
+        $form["preference_id"] = array(
             "#type" => "hidden",
-            "#value" => $preference_id
+            "#default_value" => $preference_id
         );
-        $form["wrapper"]["submit"] = array(
+        $form["submit"] = array(
             "#type" => "submit",
             "#value" => "Update"
         );
-        $form["wrapper"]["cancel"] = array(
+        $form["cancel"] = array(
             "#type" => "button",
             "#value" => "Cancel",
         );
@@ -1110,13 +1560,23 @@
     }
 
     function tbc_external_review_status_edit_form_submit($form, &$form_state) {
-        $query = "
+        /*$query = "
             UPDATE external_review_details
             SET review = {$form_state['values']['review']},
             completed = {$form_state['values']['status']}
             WHERE preference_id = {$form_state['values']['preference_id']}
         ";
-        $result = db_query($query);
+        $result = db_query($query);*/        
+        $preferenceid =  $form_state['values']['preference_id'];
+        $completed = $form_state['values']['status'];
+        $review = $form_state['values']['review'];
+        $query = db_update('external_review_details');
+        $query->fields(array(
+          'review' => $review,
+          'completed' => $completed,
+        ));
+        $query->condition('preference_id',  $preferenceid);
+        $result = $query->execute();
         if(!$result) {
             drupal_set_message("An error occured during updation.", "error");
         } else {
@@ -1131,9 +1591,19 @@
             $query = "
                 UPDATE external_review_details 
                 SET review = review + 1, completed = 0, sent = 0
-                WHERE preference_id = %d
+                WHERE preference_id = :preference_id
             ";
-            $result = db_query($query, $preference_id);
+	         $args = array(":preference_id" => $preference_id);
+            $result = db_query($query,$args);
+           /* $query = db_update('external_review_details');
+            $query->fields(array(
+              'review' => 'review + 1',
+              'completed' => 0,
+              'sent' => 0,
+            ));
+            $query->condition('preference_id', $preference_id);
+            $result = $query->execute();*/
+            
             if (!$result) {
                 drupal_set_message("Database updation failed", "error");
             } else {
@@ -1143,17 +1613,18 @@
                     LEFT JOIN textbook_companion_proposal pro ON pre.proposal_id = pro.id
                     LEFT JOIN external_review_details erd ON pre.id = erd.preference_id
                     LEFT JOIN users usr ON erd.uid = usr.uid
-                    WHERE pre.id = %d
+                    WHERE pre.id = :preference_id
                 ";
-                $result = db_query($query, $preference_id);
-                $row = db_fetch_object($result);
+                $result = db_query($query, array(':preference_id' => $preference_id));
+                
+                $row = $result->fetchObject();
                 $review_no = suffix($row->review);
                 $download_link = "<a href='{$base_url}/full_download_external/book/{$preference_id}'>Download [.zip]</a>";
                 
                 /* sending mail */
                 $to = "{$row->mail}";
                 $subject = "Please Start {$review_no} Review - Textbook Companion Project";
-                $body = "
+                $message = "
                     Dear {$row->name} <br><br>
                     The student has submitted the corrected codes.<br>
                     Please start the {$review_no} review for the following book.<br><br>
@@ -1167,31 +1638,25 @@
                     Best Wishes, <br>
                     Scilab.in
                 ";
-                $message = array(
-                    "to" => $to,
-                    "subject" => $subject,
-                    "body" => $body,
-                    "headers" => array(
-                        "From" => "textbook@scilab.in",
-                        "Bcc" => "mukulrkulkarni@gmail.com, lavitha89@gmail.com, rush2jrp@gmail.com",
-                        "Content-Type" => "text/html; charset=UTF-8; format=flowed"
-                    )
-                );
-                drupal_mail_send($message);
+     
+             //   drupal_mail_send($message);
+                 send_mail("textbook@scilab.in", $to, $subject, $message);
                 drupal_set_message("Next review started.", "status");
                 drupal_goto("tbc_external_review/manage_status");
             }
         } else if($action == "next" && $preference_id) {
-            $query = "
+           $query = "
                 SELECT pre.book, pre.author, usr.name, erd.review, ext.name AS reviewer FROM textbook_companion_preference pre
                 LEFT JOIN textbook_companion_proposal pro ON pre.proposal_id = pro.id
                 LEFT JOIN users usr ON pro.uid = usr.uid
                 LEFT JOIN external_review_details erd ON  pre.id = erd.preference_id
                 LEFT JOIN users ext ON erd.uid = ext.uid
-                WHERE pre.id = %d
+                WHERE pre.id = :preference_id
             ";
-            $result = db_query($query, $preference_id);
-            $row = db_fetch_object($result);
+            $result = db_query($query, array(':preference_id' => $preference_id));
+           
+            
+            $row = $result->fetchObject();
             $page_content .= "Are you sure you want start the <b>" . suffix($row->review+1) . "</b> review? <br><br>";
             $page_content .= "Book: <b>{$row->book}</b> <br>";
             $page_content .= "Author: <b>{$row->author}</b> <br>";
@@ -1201,32 +1666,56 @@
             $page_content .= " | ";
             $page_content .= l("Cancel", "tbc_external_review/manage_status");
         } else if($action = "edit" && $preference_id) {
-            $query = "
+            /*$query = "
                 SELECT * FROM external_review_details erd
                 LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
                 WHERE preference_id = {$preference_id}
             ";
-            $result = db_query($query);
-            $row = db_fetch_object($result);
+            
+            $result = db_query($query);*/
+           $query = "
+                SELECT * FROM external_review_details erd
+                LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
+                WHERE preference_id = {:preference_id}
+            ";
+            $args = array(':preference_id'=> $preference_id);
+            $result = db_query($query,$args);
+            $row = $result->fetchObject();
+            
             $page_content .= "<h1>Status Edit Form</h1>";
             $page_content .= "Book: <b>{$row->book}</b> <br>";
             $page_content .= "Author: <b>{$row->author}</b> <br>";
-            $page_content .= drupal_get_form("tbc_external_review_status_edit_form", $preference_id);
+            $tbc_external_review_status_edit_form = drupal_get_form("tbc_external_review_status_edit_form", $preference_id);
+            $page_content .= drupal_render($tbc_external_review_status_edit_form);
             return $page_content;
         } else {
+            /*$query = "
+                SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
+                ON (tcp.id = erd.preference_id AND erd.status=1) INNER JOIN users ON (erd.uid = users.uid)
+                ORDER BY users.name
+            ";
+            $result = db_query($query);*/
+          /*  $query = db_select('textbook_companion_preference', 'tcp');
+            $query->fields('tcp');
+            $query->innerJoin('external_review_details', 'erd', 'tcp.id = erd.preference_id AND erd.status = 1');
+            $query->innerJoin('users', '', 'erd.uid = users.uid');
+            $query->orderBy('users.name', 'ASC');
+            $result = $query->execute();*/
+            
             $query = "
                 SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
                 ON (tcp.id = erd.preference_id AND erd.status=1) INNER JOIN users ON (erd.uid = users.uid)
                 ORDER BY users.name
             ";
             $result = db_query($query);
+
             $headers = array(
                 "Book", "Review No.", 
                 "Status", "Reviewer",
                 "Action",
             );
             $rows = array();
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
                 $item = array(
                     "{$row->book}<br><em>by {$row->author}</em>",
                     suffix($row->review),
@@ -1236,10 +1725,22 @@
                 );
                 array_push($rows, $item);
             }
+           
             $page_content .= "<h2><u>Selected Books</u></h2>";
-            $page_content .= theme("table", $headers, $rows);
+            //$page_content .= theme("table", $headers, $rows);
+            $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
             
-            $query = "
+            /*$query = "
+                SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
+                ON (tcp.id = erd.preference_id AND erd.status=0) INNER JOIN users ON (erd.uid = users.uid)
+                ";
+            $result = db_query($query);*/
+           /* $query = db_select('textbook_companion_preference', 'tcp');
+            $query->fields('tcp');
+            $query->innerJoin('external_review_details', 'erd', 'tcp.id = erd.preference_id AND erd.status = 0');
+            $query->innerJoin('users', '', 'erd.uid = users.uid');
+            $result = $query->execute();*/
+             $query = "
                 SELECT * from textbook_companion_preference tcp INNER JOIN external_review_details erd 
                 ON (tcp.id = erd.preference_id AND erd.status=0) INNER JOIN users ON (erd.uid = users.uid)
                 ";
@@ -1249,7 +1750,7 @@
                 "Author",
             );
             $rows = array();
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
                 $item = array(
                     "{$row->book}",
                     "{$row->author}",
@@ -1257,7 +1758,8 @@
                 array_push($rows, $item);
             }
             $page_content .= "<h2><u>Books Not Selected</u></h2>";
-            $page_content .= theme("table", $headers, $rows);
+            //$page_content .= theme("table", $headers, $rows);
+            $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
         }
         return $page_content;
     }
@@ -1272,13 +1774,20 @@
             ORDER BY time DESC
         ";
         $result = db_query($query);
+        /*$query = db_select('external_review_details', 'erd');
+        $query->fields('erd');
+        $query->leftJoin('textbook_companion_preference', 'pre', 'erd.preference_id = pre.id');
+        $query->leftJoin('users', 'usr', 'erd.uid = usr.uid');
+        $query->condition('erd.completed', 1);
+        $query->orderBy('time', 'DESC');
+        $result = $query->execute();*/
         $headers = array(
             "Book", "Review No.",
             "Status", "Time",
             "Reviewer", 
         );
-        $rows = array($query);
-        while($row = db_fetch_object($result)) {
+        $rows = array();
+        while($row = $result->fetchObject()) {
             $item = array(
                 "{$row->book}<br><em>by {$row->author}</em>",
                 suffix($row->review),
@@ -1288,7 +1797,8 @@
             );
             array_push($rows, $item);
         }
-        $page_content .= theme("table", $headers, $rows);
+        //$page_content .= theme("table", $headers, $rows);
+        $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
         return $page_content;
     }
 
@@ -1300,27 +1810,42 @@
         $page_content .= "<div class='clearfix'></div>";
         $page_content .= "<br>";
         /* creating review links */
-        $query = "
+       /* $query = "
             SELECT DISTINCT(review) FROM external_review_comments
             WHERE preference_id = %d
             ORDER BY review DESC
         ";
-        $result = db_query($query, $preference_id);
+        $result = db_query($query, $preference_id);*/
+        $query = db_select('external_review_comments');
+        $query ->distinct();
+        $query ->fields('external_review_comments',array('review'));
+        $query->condition('preference_id', $preference_id);
+        $query->orderBy('review', 'DESC');
+        $result = $query->execute();
         $tmp = $review; // for active class in case of 0
-        while($row = db_fetch_object($result)) {
-            $option["attributes"]["class"] = "review-links";
+       while($row = $result->fetchObject()) {
+       
+          $option["attributes"]["class"] = "review-links";
             if($review == $row->review) {
-                $option["attributes"]["class"] .= " active";
+                if(!is_array($option['attributes']['class'])){
+                     $option['attributes']['class'] = (array)$option['attributes']['class'];
+                }
+                     $option['attributes']['class'][] .= " active";
             } else if($tmp == 0) {
-                $option["attributes"]["class"] .= " active";
-                $tmp = -1;
-            }
+                 if(!is_array($option['attributes']['class'])){
+                     $option['attributes']['class'] = (array)$option['attributes']['class'];
+                 }
+                     $option['attributes']['class'][] .= " active";
+                     $tmp = -1;
+             }
             $page_content .= l(
                 suffix($row->review) . "review", 
                 "tbc_external_review/manage_comments/{$preference_id}/{$row->review}",
                 $option
             );
         }
+    
+       //var_dump($review);die; 
         $page_content .= "<br><br><hr>";
             global $user;
             /* displaying comments of a particular book */
@@ -1329,37 +1854,44 @@
                     SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
                     LEFT JOIN textbook_companion_chapter cha ON cha.id = erc.chapter_id 
                     LEFT JOIN textbook_companion_example exa ON exa.id = erc.example_id
-                    WHERE erc.preference_id = %d AND review = %d
+                    WHERE erc.preference_id = :preference_id AND review = :review
                     ORDER BY erc.chapter_id, erc.example_id
                     ";
-                $result = db_query($query, $preference_id, $review);
+                $result = db_query($query, array(':preference_id' =>$preference_id, ':review' => $review));
+                
+             
+                  
+                 
             } else {
-                $query = "
+               $query = "
                     SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
                     LEFT JOIN textbook_companion_chapter cha ON cha.id = erc.chapter_id 
                     LEFT JOIN textbook_companion_example exa ON exa.id = erc.example_id
-                    WHERE erc.preference_id = %d AND review = (
-                        SELECT MAX(review) FROM external_review_comments WHERE preference_id = %d
+                    WHERE erc.preference_id = :preference_id AND review = (
+                        SELECT MAX(review) FROM external_review_comments WHERE preference_id = :pref_id
                     )
                     ORDER BY erc.chapter_id, erc.example_id
                 ";
-                $result = db_query($query, $preference_id, $preference_id);
+                $result = db_query($query, array(':preference_id' =>$preference_id, ':pref_id' => $preference_id));
+           
+               
+               
             }
             $headers = array(
                 "Chapter", "Example",
                 "Time", "Score", "Action"
             );
             $rows = array();
-            while($row = db_fetch_object($result)) {
-                $view_options = array(
-                    /* # linking in drupal l() */
+            while($row = $result->fetchObject()) {
+                /* $view_options = array(
+                    # linking in drupal l() 
                     "fragment" => " ",
                     "external" => TRUE,
-                    "attributes" => array(
+                        "attributes" => array(
                         "class" => "view-comment",
                         "data-comment" => "{$row->id}",
                     )
-                );
+                );*/
                 $hide_options= array(
                     /* # linking in drupal l() */
                     "fragment" => " ",
@@ -1389,29 +1921,49 @@
                         "{$row->example}",
                         "{$row->time}",
                         "{$score}",
-                        l("View", "", $view_options),
+                       //l("View", "", $view_options),
+                         l("View", "", array(  "fragment" => " ",
+                        "external" => TRUE,"attributes" => array(                      
+                        "id" => "popup_window",
+                        "data-comment" => "{$row->id}",
+                    ))),
+                       
                     ),
                 );
-                if($row->sfu == 1 || $row->sum == 0 || $row->amt == 1) {
+           /* if($row->sfu == 1 || $row->sum == 0 || $row->amt == 1) {
                     $error_class = array("class" => "error-comment");
                     $item = array_merge($item, $error_class);
                 }
-                if($row->hidden) {
-                    $item["class"] .= " dull";
+                */
+               $key = key(array('class' => $item["class"]));
+               if($row->sfu == 1 || $row->sum == 0 || $row->amt == 1) {
+                    $item["class"][$key] .= " error-comment";
                 }
+              
+             $key = key(array('class' => $item["class"]));
+                if($row->hidden) {
+                 $item["class"][$key] .= " dull";
+                } 
                 /* hide/unhide link */
-                end($item["data"]);
+              end($item["data"]);
                 $key= key($item["data"]);
                 if($row->hidden) {
                     $item["data"][$key] .= " | " . l("Show", "", $hide_options);
                 } else {
-                    $item["data"][$key] .= " | " . l("Hide", "", $hide_options);
+                    $item["data"][$key] .= " | " . l("Hide", "",$hide_options);
                 }
                 array_push($rows, $item);
             }
-            $page_content .= theme("table", $headers, $rows);
-            $page_content .= "<div id='lightbox-wrapper'>";
-            $page_content .= "<div id='lightbox-inner'></div></div> ";
+            //$page_content .= theme("table", $headers, $rows);
+             $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
+             $page_content .= "<div id='example-popup' class='popup'>
+                                    <div class='popup-body'>
+                                        <span class='popup-exit'></span>
+                                            <div id = 'popup-content' class='popup-content'>
+                                            </div>
+                                    </div>
+                            </div>";
+            $page_content .= "<div class='popup-overlay'></div>";
         } else {
             /* displaying the list of books */
             $query = "
@@ -1425,6 +1977,7 @@
                 ORDER BY erd.hidden
             ";
              $result = db_query($query);
+           
                      
             $headers = array(
                 "Book", "Review No.",
@@ -1432,7 +1985,8 @@
                 "Reviewer", "Action"
             );
             $rows = array();
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
+                  if($row->book !=NULL){
                   $hide_optionss= array(
                     /* # linking in drupal l() */
                     "fragment" => " ",
@@ -1452,11 +2006,20 @@
                         l("View", "tbc_external_review/manage_comments/" . $row->preference_id)
                     ),
                 );
-
+              //  not supported in drupal 7
+              
+            /* if($row->hidden) {
+             $class_attrtibute =  $item['class']; 
+                     $class = array("class" => " dulls");
+                     $class_attrtibute .= $class;
+                } */
+                
+                 $key = key(array('class' => $item["class"]));
                 if($row->hidden) {
-                 $item["class"] .= " dulls";
+                 $item["class"][$key] .= " dulls";
                 } 
 
+               
                 end($item["data"]);
                 $key = key($item["data"]);
                 if(!$row->sent) {
@@ -1464,19 +2027,21 @@
                 } else {
                     $item["data"][$key] .= " | " . "Sent";
                 }
-                 
+                
                 /* hide/unhide link */
                 end($item);
                 $key= key($item["data"]);
                 if($row->hidden) {
-                    $item["data"][$key] .= " | " . l("Show", "", $hide_optionss);
+                    $item["data"][$key] .= " | " . l("Show", "",$hide_optionss);
                 } else {
-                    $item["data"][$key] .= " | " . l("Hide", "", $hide_optionss);
+                    $item["data"][$key] .= " | " . l("Hide", "",$hide_optionss);
                 }
-
+//
                 array_push($rows, $item);
-            }
-            $page_content .= theme("table", $headers, $rows);
+            }}
+            //$page_content .= theme("table", $headers, $rows);
+            
+            $page_content .=  theme('table', array('header' => $headers, 'rows' => $rows ));
            }
         return $page_content;
     }
@@ -1490,12 +2055,16 @@
         }
         $page_content = "";
         if($confirm == "confirm") {
-            $query = "
+            /*$query = "
                 SELECT * FROM external_review_details
                 WHERE preference_id = %d
                 ";
-            $result = db_query($query, $preference_id);
-            $row = db_fetch_object($result);
+            $result = db_query($query, $preference_id);*/
+            $query = db_select('external_review_details');
+            $query->fields('external_review_details');
+            $query->condition('preference_id', $preference_id);
+            $result = $query->execute();
+            $row = $result->fetchObject();
             $current_review = $row->review;
             $review_dir = $_SERVER['DOCUMENT_ROOT'] . base_path() . "reviews/{$row->preference_id}/";
             if(!file_exists($review_dir)) {
@@ -1517,11 +2086,14 @@
                 SELECT erc.*, cha.number AS chapter, exa.number AS example FROM external_review_comments erc
                 LEFT JOIN textbook_companion_chapter cha ON erc.chapter_id = cha.id
                 LEFT JOIN textbook_companion_example exa ON erc.example_id = exa.id
-                WHERE (erc.hidden = 0 AND erc.preference_id = %d AND erc.review = %d)
+                WHERE (erc.hidden = 0 AND erc.preference_id = :preference_id AND erc.review = :current_review)
                 ORDER BY chapter, example
                 ";
-            $result = db_query($query, $preference_id, $current_review);
-            while($row = db_fetch_object($result)) {
+            $args = array(':preference_id' => $preference_id, ':current_review'=>$current_review);
+            $result = db_query($query, $args);
+            
+
+            while($row = $result->fetchObject()) {
                 $item = array(
                     $row->chapter, $row->example,
                     _bool($row->ncf), _bool($row->eit),
@@ -1541,15 +2113,19 @@
                 LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
                 LEFT JOIN textbook_companion_proposal pro ON pre.proposal_id = pro.id
                 LEFT JOIN users usr ON pro.uid = usr.uid
-                WHERE erd.preference_id = %d
+                WHERE erd.preference_id = :preference_id
             ";
-            $result = db_query($query, $preference_id);
-            $row = db_fetch_object($result);
+            $args = array(':preference_id' => $preference_id);
+            $result = db_query($query, $args);            
+            $row = $result->fetchObject();
             $review_no = suffix($row->review);
             $from = "textbook@scilab.in";
             $to = "{$row->mail}";
             $cc = "textbook@scilab.in";
-            $bcc = "mukulrkulkarni@gmail.com, lavitha89@gmail.com, rush2jrp@gmail.com";
+            /****need to to be changed****/
+            //$bcc = "mukulrkulkarni@gmail.com, lavitha89@gmail.com, rush2jrp@gmail.com";
+            $bcc = "prashantsinalkar@gmail.com, vvineetaghavri@gmail.com";
+            /*********************************************************/
             $subject = "Scilab Textbook Companion - {$review_no} Review";
             $message = "
                 Dear {$row->name}<br><br>
@@ -1570,12 +2146,18 @@
                 drupal_goto("tbc_external_review/manage_comments");
             } else {
                 /* toggling  sent column in database */
-                $query = "
+                /*$query = "
                     UPDATE external_review_details
                     SET sent = 1
                     WHERE preference_id = %d
                 ";
-                $result = db_query($query, $preference_id);
+                $result = db_query($query, $preference_id);*/
+                $query = db_update('external_review_details');
+                $query->fields(array(
+                  'sent' => 1,
+                ));
+                $query->condition('preference_id', $preference_id);
+                $result = $query->execute();
                 drupal_set_message("Mail sent successfully.", "status");
                 drupal_goto("tbc_external_review/manage_comments");
             }
@@ -1585,10 +2167,11 @@
                 LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
                 LEFT JOIN textbook_companion_proposal pro ON pre.proposal_id = pro.id
                 LEFT JOIN users usr ON pro.uid = usr.uid
-                WHERE erd.preference_id = %d
+                WHERE erd.preference_id = :preference_id
             ";
-            $result = db_query($query, $preference_id);
-            $row = db_fetch_object($result);
+            $result = db_query($query, array(':preference_id' => $preference_id));
+            
+            $row = $result->fetchObject();
             $page_content .= "<h4>Are you sure you want to send mail?</h4><br>";
             $page_content .= "Book: <b>{$row->book}</b><br>";
             $page_content .= "Author: <b>{$row->author}</b><br>";
@@ -1600,27 +2183,27 @@
         return $page_content;
         }
 
-    function tbc_external_review_add_book_form($form_state, $preference_id) {
+    function tbc_external_review_add_book_form($form, &$form_state, $preference_id) {
         $form = array();
-        $form["wrapper"] = array(
+        $form = array(
             "#prefix" => "<div id='add-book-form'>",
             "#suffix" => "</div>"
         );
-        $form["wrapper"]["review"] = array(
+        $form["review"] = array(
             "#type" => "select",
             "#title" => "Review Number",
             "#options" => range(0,10),
             "#default_value" => 1
         );
-        $form["wrapper"]["preference_id"] = array(
+        $form["preference_id"] = array(
             "#type" => "hidden",
-            "#value" => $preference_id
+            "#default_value" => $preference_id
         );
-        $form["wrapper"]["submit"] = array(
+        $form["submit"] = array(
             "#type" => "submit",
             "#value" => "Submit"
         );
-        $form["wrapper"]["cancel"] = array(
+        $form["cancel"] = array(
             "#type" => "button",
             "#value" => "Cancel",
         );
@@ -1630,25 +2213,61 @@
     function tbc_external_review_add_book_form_submit($form, &$form_state) {
         $preference_id = $form_state["values"]["preference_id"];
         $review = $form_state["values"]["review"];
+      
         
-        $query = "
+       /* $query = "
             INSERT INTO {external_review_details}
             (preference_id, review)
             VALUES
             (%d, %d)
         ";
-        $result = db_query($query, $preference_id, $review);
+        $result = db_query($query, $preference_id, $review);*/
+        $query = "
+            INSERT INTO {external_review_details}
+            (uid, preference_id, review, status, completed, published, sent)
+            VALUES
+            (:uid, {:preference_id},{:review}, :status, :completed, :published, :sent)
+        ";
+        $args = array(':uid' => 0,
+        	     ':preference_id' => $preference_id,
+                     ':review' => $review,
+                     ':status' => 0,
+                     ':completed' => 0,
+                     ':published' => 0,
+                     ':sent' => 0                   
+               );
+        $result = db_query($query, $args);
         
         if(!$result) {
             drupal_set_message("An error occured while adding the book for review.", "error");
         } 
-        $query = "
+        /*$query = "
             UPDATE textbook_companion_proposal
             SET proposal_status = 4
             WHERE id IN
             (SELECT proposal_id from textbook_companion_preference WHERE id = %d)
         ";
-        $result = db_query($query, $preference_id);
+        $result = db_query($query, $preference_id);*/
+       /* $query = db_update('textbook_companion_proposal');
+        $query->fields(array(
+          'proposal_status' => 4,
+        ));
+
+        $subquery = db_select('textbook_companion_preference', '');
+        $subquery->fields('proposal_id', array(''));
+        $subquery->condition('id', $preference_id);
+        $query->condition('id', $subquery, 'IN');
+
+       $result = $query->execute();*/
+       $query = "
+            UPDATE textbook_companion_proposal
+            SET proposal_status = 4
+            WHERE id IN
+            (SELECT proposal_id from textbook_companion_preference WHERE id = :preference_id)
+        ";
+        $args = array(':preference_id' => $preference_id);
+        $result = db_query($query,$args);
+
         if(!$result) {
             drupal_set_message("Book status update failed.", "error");
         } else {
@@ -1660,21 +2279,29 @@
     function tbc_external_review_add_book_all($preference_id=0) {
         if ($preference_id) {
             $page_content = "";
-            $query = "
+            /*$query = "
                 SELECT * FROM {textbook_companion_preference} WHERE id = %d
             ";
-            $result = db_query($query, $preference_id);
-            $row = db_fetch_object($result);
+            $result = db_query($query, $preference_id);*/
+            
+             $query = "
+                SELECT * FROM {textbook_companion_preference} WHERE id = :preference_id
+            ";
+            $args =array (':preference_id' => $preference_id);
+            $result = db_query($query,$args );
+            
+            $row = $result->fetchObject();
             $page_content .= "<strong>Do you want to continue adding the book?</strong><br>";
             $page_content .= "Book: {$row->book} <br>";
             $page_content .= "Author: {$row->author} <br>";
-            $page_content .= drupal_get_form("tbc_external_review_add_book_form", $preference_id);
+            $tbc_external_review_add_book_form = drupal_get_form("tbc_external_review_add_book_form", $preference_id);
+            $page_content .= drupal_render($tbc_external_review_add_book_form);
             return $page_content;
         }
         drupal_goto("manage_proposal/all");
     }
 
-    function tbc_external_review_completion_form($form, $preference_id=10) {
+    function tbc_external_review_completion_form($form, &$form_state, $preference_id=10) {
         function _missed_chapter() {
             $chapter = array();
             $chapter[0] = "Select Chapter";
@@ -1731,18 +2358,29 @@
     }
 
     function tbc_external_review_status_all($action="", $preference_id=0, $confirm="") {
+
         global $user;
         $page_content = "";
+       
         if($action == "complete" && $preference_id) {
+        
             if($confirm == "yes"){
-                $query = "
+           // var_dump("test");
+              /*  $query = "
                     UPDATE external_review_details
                     SET completed = 1
                     WHERE preference_id = %d
                 ";
-                $result = db_query($query, $preference_id);
+                $result = db_query($query, $preference_id);*/
                 
-                $query = "
+                $query = db_update('external_review_details');
+                $query->fields(array(
+                  'completed' => 1,
+                ));
+                $query->condition('preference_id', $preference_id);
+                $result = $query->execute();
+             /*****************************************************************************/   
+               /* $query = "
                     INSERT INTO external_review_missed
                     (preference_id, uid, chapter, example)
                     VALUES
@@ -1757,7 +2395,25 @@
                     }
                     $result = db_query($query, $preference_id);
                 }
+                */
                 
+                $query = "
+                    INSERT INTO external_review_missed
+                    (preference_id, uid, chapter, example)
+                    VALUES
+                   (:preference_id, :uid, :chapter, :example)
+                ";
+                $args = array(':preference_id' => $preference_id, ':uid' => $user->uid, ':chapter' => $_REQUEST['missed_chapter'], ':example' => $_REQUEST['missed_example']);
+                
+                if ($_REQUEST["missing"]) {
+                    $i = 0;
+                    foreach($_REQUEST["missed_chapters"] as $chapter){
+                        $args .= ", (':preference_id' => {$preference_id},':uid' => {$user->uid}, ':chapter' => {$chapter}, ':example' => {$_REQUEST['missed_examples'][$i]})";
+                        $i++;
+                    }
+                    $result = db_query($query, $args);
+                }
+             /******************************************************************************/   
                 if(!$result) {
                     drupal_set_message("Updation failed.", "error");
                 } else {
@@ -1765,16 +2421,22 @@
                     $query = "
                         SELECT * FROM external_review_details erd
                         LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
-                        WHERE erd.preference_id = %d
+                        WHERE erd.preference_id = :pref_id
                     ";
-                    $result = db_query($query, $preference_id);
-                    $row = db_fetch_object($result);
+                    $result = db_query($query, array(':pref_id' => $preference_id));
+                    
+                    /*$query = db_select('external_review_details', 'erd');
+                    $query->fields('erd');
+                    $query->leftJoin('textbook_companion_preference', 'pre', 'erd.preference_id = pre.id');
+                    $query->condition('erd.preference_id',  $preference_id);
+                    $result = $query->execute();*/
+                    $row = $result->fetchObject();
                     
                     $review_no = suffix($row->review);
                     /* sending mail */
                     $to = "{$user->mail}";
                     $subject = "External Review - Textbook Companion Project";
-                    $body = "
+                    $message = "
                         Dear {$user->name} <br><br>
                         You have completed a review. <br><br>
                         Book: <b>{$row->book}</b> <br>
@@ -1785,49 +2447,44 @@
                         Best Wishes, <br>
                         Scilab.in
                     ";
-                    $message = array(
-                        "to" => $to,
-                        "subject" => $subject,
-                        "body" => $body,
-                        "headers" => array(
-                            "From" => "textbook@scilab.in",
-                            "Bcc" => "mukulrkulkarni@gmail.com, lavitha89@gmail.com, rush2jrp@gmail.com",
-                            "Content-Type" => "text/html; charset=UTF-8; format=flowed"
-                        )
-                    );
-                    drupal_mail_send($message);
+                                      // drupal_mail_send($message);
+			 send_mail("textbook@scilab.in", $to, $subject, $message);
+
                     drupal_set_message("Book marked as completed successfully.");
                 }
                 drupal_goto("tbc_external_review/status");
-            } else {
+            } else {             
                 $query = "
                     SELECT erd.review, pre.id, pre.book, pre.author FROM external_review_details erd
                     LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
-                    WHERE erd.preference_id = %d
+                    WHERE erd.preference_id = :preference_id
                 ";
-                $result = db_query($query, $preference_id);
-                $row = db_fetch_object($result);
-                
+                $result = db_query($query, array(':preference_id' => $preference_id));
+               
+                $row = $result->fetchObject();
+                                
                 $page_content .= "<strong>Are you sure you want to mark the book completed?</strong><br>";
                 $page_content .= "Book: {$row->book} <br>";
                 $page_content .= "Author: {$row->author} <br>";
-                $page_content .= drupal_get_form("tbc_external_review_completion_form", $preference_id);
+                $tbc_external_review_completion_form = drupal_get_form("tbc_external_review_completion_form", $preference_id);
+                $page_content .= drupal_render($tbc_external_review_completion_form);
             }
         } else {
             $query = "
                 SELECT erd.*, pre.* FROM external_review_details erd
-                LEFT JOIN textbook_companion_preference pre ON pre.id = erd.preference_id
-                WHERE erd.uid = %d
+                LEFT JOIN textbook_companion_preference pre ON erd.preference_id = pre.id
+                WHERE erd.uid = :uid
                 ORDER BY pre.book
             ";
-            $result = db_query($query, $user->uid);
+            $result = db_query($query, array(":uid" =>$user->uid));
+            
             
             $headers = array(
                 "Book", "Review No.",
                 "Action"
             );
             $rows = array();
-            while($row = db_fetch_object($result)) {
+            while($row = $result->fetchObject()) {
                 $item = array(
                     "{$row->book}<br>by <em>{$row->author}</em>",
                     suffix($row->review),
@@ -1841,442 +2498,49 @@
                 }
                 array_push($rows, $item);
             }
-            $page_content .= theme("table", $headers, $rows);
+            // $page_content .= theme("table", $headers, $rows);
+             $page_content .=  theme('table', array('header' => $headers, 'rows' => $rows ));
         }
         return $page_content;
     }
 
-    function tbc_external_review_eligibility_test_form($form, $question_id=0) {
-        $form = array();
-        global $user;
-        
-        $query = "
-            SELECT * FROM external_review_eligibility_answers
-            WHERE uid = {$user->uid} AND question_id = {$question_id}
-        ";
-        $result = db_query($query);
-        $row = db_fetch_object($result);
-        
-        $form["wrapper"] = array(
-            "#type" => "fieldset",
-            "#title" => t("Eligibility Test"),
-            "#prefix" => "<div id='eligibility-form-wrapper'>",
-            "#suffix" => "</div>",
-        );
-        $form["wrapper"]["ncf"] = array(
-            "#type" => "radios",
-            "#title" => t("Naming convention followed? (Checklist point 1, 2 and 4)"),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->ncf
-        );
-        $form["wrapper"]["eit"] = array(
-            "#type" => "radios",
-            "#title" => t("Error in textbook mentioned as comment?"),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-                t("Not required and answer matches with the textbook"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->eit
-        );
-        $form["wrapper"]["sua"] = array(
-            "#type" => "radios",
-            "#title" => t("Symbols used are appropiate?"),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->sua
-        );
-        $form["wrapper"]["sfu"] = array(
-            "#type" => "radios",
-            "#title" => t("Scilab functions used?"),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->sfu
-        );
-        $form["wrapper"]["aci"] = array(
-            "#type" => "radios",
-            "#title" => t("Appropriate comments included as mentioned in checklist point 7?"),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->aci
-        );
-        $form["wrapper"]["auu"] = array(
-            "#type" => "radios",
-            "#title" => t("Appropriate units used as given in the textbook?"),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->auu
-        );
-        $form["wrapper"]["teo"] = array(
-            "#type" => "radios",
-            "#title" => t("Typographical errors in output and/or comments?"),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->teo
-        );
-        $form["wrapper"]["mit"] = array(
-            "#type" => "radios",
-            "#title" => t("The code can be approved if the same example is solved using Matlab in the textbook."),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->mit
-        );
-        $form["wrapper"]["agl"] = array(
-            "#type" => "radios",
-            "#title" => t("Axes of graph need not be labeled"),
-            "#options" => array(
-                t("Yes"),
-                t("No"),
-            ),
-            "#required" => TRUE,
-            "#default_value" => $row->agl
-        );
-        $form["wrapper"]["question_id"] = array(
-            "#type" => "hidden",
-            "#value" => $question_id
-        );
-        $form["wrapper"]["submit"] = array(
-            "#type" => "submit",
-            "#value" => "Submit and Continue."
-        );
-        return $form;
-    }
-
-    function tbc_external_review_eligibility_test_form_submit($form, &$form_state) {
-        global $user;
-        
-        $v = $form_state["values"];
-        
-        /* checking the timer and status of current user */
-        $query = "
-            SELECT * FROM external_review_eligibility_timings
-            WHERE uid = {$user->uid}
-        ";
-        $result = db_query($query);
-        $num_rows = mysql_num_rows($result); //either 1 or 0
-        if($num_rows){
-            /* now checking whether the test is still open */
-            $row = db_fetch_object($result);
-            $start_date = new DateTime($row->start_date);
-            $current_date = new DateTime();
-            $since_start = $start_date->diff($current_date);
-            $minutes_remaining = 24 - $since_start->i;
-            $seconds_remaining = 60 - $since_start->s;
-            if($minutes_remaining >= 0) {
-            } else {
-                drupal_goto("tbc_external_review/eligibility_test/end");
-            }
-        }
-        
-        $query = "
-            SELECT id FROM external_review_eligibility_answers
-            WHERE 
-            uid = {$user->uid} AND question_id = {$v['question_id']}
-        ";
-        $result = db_query($query);
-        $num_rows = mysql_num_rows($result);
-        if($num_rows) {
-            $query = "
-                UPDATE external_review_eligibility_answers
-                SET
-                ncf = {$v['ncf']}, eit = {$v['eit']}, sua = {$v['sua']},
-                sfu = {$v['sfu']}, aci = {$v['aci']}, auu = {$v['auu']},
-                teo = {$v['teo']}, mit = {$v['mit']}, agl = {$v['agl']}
-                WHERE
-                uid = {$user->uid} AND question_id = {$v['question_id']}
-                ";
-            $result = db_query($query);
-        } else {
-            $query = "
-                INSERT INTO external_review_eligibility_answers
-                (
-                    uid, question_id, 
-                    ncf, eit, sua,
-                    sfu, aci, auu,
-                    teo, mit, agl
-                )
-                VALUES
-                (
-                    {$user->uid}, {$v['question_id']},
-                    {$v['ncf']}, {$v['eit']}, {$v['sua']},
-                    {$v['sfu']}, {$v['aci']}, {$v['auu']},
-                    {$v['teo']}, {$v['mit']}, {$v['agl']}
-                )
-            ";
-            $result = db_query($query);
-        }
-        $question_id = $v["question_id"];
-        if($question_id == 5) {
-            // end the test
-            drupal_goto("tbc_external_review/eligibility_test/end");
-        } else {
-            drupal_goto("tbc_external_review/eligibility_test/question/".($question_id+1));
-        }
-    }
-
-    function tbc_external_review_eligibility_test_all($action="", $question_id=0) {
-        global $user;
-        $page_content = "";
-        $minutes_remaining = 25;
-        $seconds_remaining = 0;
-        
-        /* checking if a valid question */
-        if ($question_id > 5 || $question_id < 0) {
-            drupal_set_message("Wrong question number.", "error");
-            drupal_goto("tbc_external_review/eligibility_test/question/1");
-        }
-        
-        if($action == "question" && $question_id) {
-            /* checking the timer and status of current user */
-            $query = "
-                SELECT * FROM external_review_eligibility_timings
-                WHERE uid = {$user->uid}
-            ";
-            $result = db_query($query);
-            $num_rows = mysql_num_rows($result); //either 1 or 0
-            if($num_rows){
-                /* now checking whether the test is still open */
-                $row = db_fetch_object($result);
-                $start_date = new DateTime($row->start_date);
-                $current_date = new DateTime();
-                $since_start = $start_date->diff($current_date);
-                $minutes_remaining = 24 - $since_start->i;
-                $seconds_remaining = 60 - $since_start->s;
-                if($minutes_remaining >= 0) {
-                } else {
-                    drupal_goto("tbc_external_review/eligibility_test/end");
-                }
-            } else {
-                /* inserting a new entry into timings table */
-                $current_date = new DateTime();
-                $current_date = $current_date->format('Y-m-d H:i:s');
-                $query = "
-                    INSERT INTO external_review_eligibility_timings
-                    (uid, status, start_date)
-                    VALUES
-                    ({$user->uid}, 1, '{$current_date}')
-                ";
-                $result = db_query($query);
-            }
-            
-            /* getting the questions */
-            $query = "
-                SELECT * FROM external_review_eligibility_questions
-                WHERE id = {$question_id}
-            ";
-            $result = db_query($query);
-            $row = db_fetch_object($result);
-            $page_content .= "<div id='timer'>";
-                $page_content .= "<span id='minutes'></span>m: ";
-                $page_content .= "<span id='seconds'></span>s";
-            $page_content .= "</div>";
-            $page_content .= "<h4>";
-                if ($question_id != 1) {
-                    $page_content .= l("<Prev - ", "tbc_external_review/eligibility_test/question/" . ($question_id-1));
-                }
-                $page_content .= "Question {$question_id} of 5";
-                if ($question_id != 5) {
-                    $page_content .= l(" - Next>", "tbc_external_review/eligibility_test/question/" . ($question_id+1));
-                }
-            $page_content .= "</h4><br>";
-            $page_content .= "<div id='example-name'>Example file name: <strong>{$row->example_name}</strong></div><br>";
-            $page_content .= "<div class='well'><pre>{$row->code}</pre></div>";
-            $page_content .= drupal_get_form("tbc_external_review_eligibility_test_form", $question_id);
-            
-            /* hidden fields with minutes_remaining and seconds_remaining */
-            $page_content .= "<input id='minutes_remaining' value='{$minutes_remaining}' type='hidden'>";
-            $page_content .= "<input id='seconds_remaining' value='{$seconds_remaining}' type='hidden'>";
-        } else if($action == "end") {
-            $query = "
-                UPDATE external_review_eligibility_timings
-                SET status = 2
-                WHERE uid = {$user->uid}
-            ";
-            $result = db_query($query);
-            drupal_set_message("Eligibility Test completed successfully. We will get back to you soon.", "status");
-        } else {
-            /* checking if the user has filled the profile form */
-            $query = "
-                SELECT uid FROM external_review_profile
-                WHERE uid = %d
-            ";
-            $result = db_query($query, $user->uid);
-            $num_rows = mysql_num_rows($result);
-            if(!$num_rows) {
-                drupal_set_message("Please fill  the profile form before you can attend the test.", "error");
-                drupal_goto("tbc_external_review/profile");
-            }
-            
-            /* showing the test details before starting the test */
-            $page_content .= "<p>You are about to give a test based on which you will be selected as a reviewer for the Scilab Textbook Companions.</p>";
-            $page_content .= "<ul>";
-                $page_content .= "<li>The test consists of 5 code review questions that are mandatory.</li>";
-                $page_content .= "<li>Test duration is 25 minutes, after which the test will automatically close.</li>";
-            $page_content .= "</ul>";
-            $page_content .= "<u><b>" . l("Click here", "tbc_external_review/eligibility_test/question/1") . "</b></u>";
-            $page_content .= " to start the test.";
-            // $page_content .= "<strong>The test has been suspended for today due to technical reasons.</strong><br>";
-            // $page_content .= "<strong>Please visit this page tomorrow.</strong>";
-        }
-        return $page_content;
-    }
-
-    function tbc_external_review_manage_tests_all($action="", $user_id=0){
-        /* 
-            end the tests that did not close properly 
-            i.e set status=2 before loading this page in the future\
-            if the time has expired.
-        */
-        $page_content = "";
-        if($action == "view" && $user_id) {
-            /* fetching the correct answers*/
-            $query = "
-                SELECT * FROM external_review_eligibility_timings
-                WHERE uid = %d
-            ";
-            $result = db_query($query, $user_id);
-            if(mysql_num_rows($result)) {
-                /* fetching correct answers */
-                $query = "
-                    SELECT id, ncf, eit, sua, sfu, aci, auu, teo, mit, agl
-                    FROM external_review_eligibility_questions
-                ";
-                $result = db_query($query);
-                $correct_answers = array();
-                while($row = db_fetch_object($result)) {
-                    $correct_answers[$row->id] = $row;
-                }
-                
-                /* fetching user answers */
-                $query = "
-                    SELECT * FROM external_review_eligibility_answers
-                    WHERE uid = %d
-                ";
-                $result = db_query($query, $user_id);
-                $user_answers = array();
-                while($row = db_fetch_object($result)) {
-                    $user_answers[$row->question_id] = $row;
-                }
-                
-                /* comparing the results */
-                $scores = array();
-                foreach($user_answers as $user_answer) {
-                    $scores [$user_answer->question_id] = 0;
-                    ($user_answer->ncf == $correct_answers[$user_answer->question_id]->ncf)?$scores[$user_answer->question_id]++:Null;
-                    ($user_answer->eit == $correct_answers[$user_answer->question_id]->eit)?$scores[$user_answer->question_id]++:Null;
-                    ($user_answer->sua == $correct_answers[$user_answer->question_id]->sua)?$scores[$user_answer->question_id]++:Null;
-                    ($user_answer->sfu == $correct_answers[$user_answer->question_id]->sfu)?$scores[$user_answer->question_id]++:Null;
-                    ($user_answer->aci == $correct_answers[$user_answer->question_id]->aci)?$scores[$user_answer->question_id]++:Null;
-                    ($user_answer->auu == $correct_answers[$user_answer->question_id]->auu)?$scores[$user_answer->question_id]++:Null;
-                    ($user_answer->teo == $correct_answers[$user_answer->question_id]->teo)?$scores[$user_answer->question_id]++:Null;
-                    ($user_answer->mit == $correct_answers[$user_answer->question_id]->mit)?$scores[$user_answer->question_id]++:Null;
-                    ($user_answer->agl == $correct_answers[$user_answer->question_id]->agl)?$scores[$user_answer->question_id]++:Null;
-                }
-                $page_content .= "<hr><h1><u>User Score</u></h1>";
-                $total_score = 0;
-                foreach($scores as $key => $value) {
-                    $page_content .= "Question {$key} score = <strong>{$value}</strong> out of 9<br>";
-                    $total_score += $value;
-                }
-                $page_content .= "<h1>Total Score = {$total_score} out of 45";
-                /* fetching user data for display */
-                $query = "
-                    SELECT * FROM external_review_profile erd
-                    LEFT JOIN users usr ON usr.uid = erd.uid
-                    WHERE erd.uid = %d
-                ";
-                $result = db_query($query, $user_id);
-                $row = db_fetch_array($result);
-                $fields = array(
-                    "first_name", "last_name", "designation", "university",
-                    "phone", "email", "alt_email", "address",
-                    "description"
-                );
-                $page_content .= "<hr><h1><u>User Profile</u></h1>";
-                $page_content .= "<table border=1 cellspacing=1 cellpadding=1>";
-                foreach($fields as $field) {
-                    $page_content .= "<tr>";
-                        $page_content .= "<td>{$field}</td>";
-                        $page_content .= "<td>{$row[$field]}</td>";
-                    $page_content .= "</tr>";
-                }
-                $page_content .= "</table>";
-            }
-        } else {
-            $query = "
-                SELECT * FROM external_review_eligibility_timings tim
-                LEFT JOIN users usr ON usr.uid = tim.uid
-                WHERE tim.status = 2
-                ";
-            $result = db_query($query);
-            
-            $headers = array(
-                "User", "Date Attended",
-                "Action"
-            );
-            $rows = array();
-            while($row = db_fetch_object($result)) {
-                $item = array(
-                    $row->name,
-                    $row->start_date,
-                    l("View", "tbc_external_review/manage_tests/view/{$row->uid}")
-                );
-                array_push($rows, $item);
-            }
-            $page_content .= theme("table", $headers, $rows);
-        }
-        return $page_content;
-    }
-
-    function tbc_external_review_er_assign_book_form(){
-            $query = "  
+    function tbc_external_review_er_assign_book_form($form,$form_state){
+           /* $query = "  
                  SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.completed FROM textbook_companion_preference pre
                  LEFT JOIN external_review_details erd ON erd.preference_id = pre.id
                  LEFT JOIN users usr ON usr.uid = erd.uid
                  WHERE erd.status = 0
                  ORDER BY pre.book ASC
-            ";
+            ";*/
+         $query = "
+		SELECT pre.proposal_id, pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.completed FROM textbook_companion_preference pre
+                 LEFT JOIN external_review_details erd ON erd.preference_id = pre.id                
+                 LEFT JOIN users usr ON usr.uid = erd.uid
+                 LEFT JOIN textbook_companion_proposal po ON pre.proposal_id = po.id
+                 WHERE erd.status = 0 AND po.proposal_status !=3
+                 ORDER BY pre.book ASC
+		  ";
+                    
          $result = db_query($query);
+        
          $books = array();
          $books[0] = "Please select a book";
-         while($row1 = db_fetch_object($result)) {
-            $books[$row1->id] = "{$row1->book} (Author: {$row1->author}, Edition: {$row1->edition})";           
+         while($row1 = $result->fetchObject()) {
+            $books[$row1->id] = "{$row1->book} (Author: {$row1->author}, Edition: {$row1->edition})";
          }
                     
-            $querys = "  
+           $querys = "  
                  SELECT * FROM users_roles rol
                  LEFT JOIN users usr ON usr.uid = rol.uid
                  LEFT JOIN external_review_profile erp ON erp.uid = usr.uid
                  WHERE rol.rid = 9
                  ORDER BY erp.first_name ASC
             ";
-         $results = db_query($querys);         
+         $results = db_query($querys);
+                                              
          $reviewers = array();
          $reviewers[0] = "Please select a reviewer";
-         while($row = db_fetch_object($results)) {                
+         while($row = $results->fetchObject()) {
              $reviewers[$row->uid] = "{$row->first_name} {$row->last_name}";
          }
         $form = array();
@@ -2311,14 +2575,21 @@
     function tbc_external_review_er_assign_book_form_submit($form, &$form_state){
     
         $v = $form_state["values"];
-            $query = "
+           /* $query = "
                 UPDATE external_review_details
                 SET status = 1 , uid = %d
                 WHERE preference_id = %d
             ";
             $result = db_query($query, 
                $v["reviewers"], $v["book"]
-            );        
+            );*/ 
+            $query = db_update('external_review_details');
+            $query->fields(array(
+              'status' => 1,
+              'uid' => $v["reviewers"],
+            ));
+            $query->condition('preference_id',  $v["book"]);
+            $result = $query->execute();
             drupal_set_message("Book alloted successfully", "status");
             
     }
@@ -2328,22 +2599,31 @@
         $page_content .= "";
         $page_content .= "";
         $page_content .= "";
-        $page_content .= drupal_get_form("tbc_external_review_er_assign_book_form");
+        $assign_book_form = drupal_get_form("tbc_external_review_er_assign_book_form");
+        $page_content .= drupal_render($assign_book_form);
         return $page_content;
     }
 
     function tbc_external_review_er_remove_book_form(){
-            $query = "  
+            /*$query = "  
                 SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid FROM textbook_companion_preference pre
                 LEFT JOIN external_review_details erd ON erd.preference_id = pre.id
                 LEFT JOIN users usr ON usr.uid = erd.uid
                 WHERE erd.status = 1  
                 ORDER BY pre.book ASC 
             ";
-        $result = db_query($query);
+        $result = db_query($query);*/
+        $query = db_select('textbook_companion_preference', 'pre');
+                    $query->fields('pre', array('id', 'book', 'author', 'edition'));
+                    $query->fields('usr', array('uid'));
+                    $query->leftJoin('external_review_details', 'erd', 'erd.preference_id = pre.id');
+                    $query->leftJoin('users', 'usr', 'usr.uid = erd.uid');
+                    $query->condition('erd.status', 1);
+                    $query->orderBy('pre.book', 'ASC');
+                    $result = $query->execute();
         $books = array();
         $books[0] = "Please select a book";    
-        while($row = db_fetch_object($result)) {
+        while($row = $result->fetchObject()) {
            $books[$row->id] = "{$row->book} (Author: {$row->author}, Edition: {$row->edition})";        
         }
 
@@ -2368,28 +2648,36 @@
 
     function tbc_external_review_er_remove_book_form_submit($form, &$form_state){    
         $v = $form_state["values"];
-            $query = "
+           /* $query = "
                 UPDATE external_review_details
                 SET status = 0 , uid = 0 
                 WHERE preference_id = %d
             ";
             $result = db_query($query, 
                 $v["book"]
-            );        
+            ); */
+            $query = db_update('external_review_details');
+            $query->fields(array(
+              'status' => 0,
+              'uid' => 0,
+            ));
+            $query->condition('preference_id', $v["book"]);
+             $result = $query->execute();       
             drupal_set_message("Book removed successfully", "status");
             
     }
 
     function tbc_external_review_er_remove_book_all() {
-        $page_content .= "";        
-        $page_content .= drupal_get_form("tbc_external_review_er_remove_book_form");
+        $page_content .= "";
+        $er_remove_book_form = drupal_get_form("tbc_external_review_er_remove_book_form");
+        $page_content .= drupal_render($er_remove_book_form);
         return $page_content;
     }
     
     function _er_reminder_all($id=0, $confirm = "") {
 
         function _er_reminder_mail($id){
-            $query = "
+           $query = "
                 SELECT pre.id AS id, pre.book, pre.author, pre.edition, erd.failed_reminder, 
                     erd.time, usr.uid, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
                     LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
@@ -2399,7 +2687,8 @@
                     WHERE erd.status = 1 AND completed = 0 AND rol.rid = 9 AND id = {$id}
                 ";            
                     $result = db_query($query);
-                    $row = db_fetch_object($result);
+                    
+                    $row = $result->fetchObject();
                     $start_date = new DateTime($row->time);
                     $current_date = new DateTime();
                     $since_start = $start_date->diff($current_date);
@@ -2409,13 +2698,14 @@
                         $query = "
                             UPDATE external_review_details
                             SET failed_reminder = failed_reminder + 1
-                            WHERE preference_id = {$id}
+                            WHERE preference_id = {:preference_id}
                         ";
-
+                        
+                        
                             /* sending mail */
                             $to = $row->mail;
                             $subject = "Reminder to complete review";
-                            $body = "
+                            $message = "
                             <p>
                               Dear Reviewer,<br><br>
                               This is to remind you that it has been 15 days since the book was allotted to you. You still have 15 days left from the provided 30 days to submit your review comments. 
@@ -2425,18 +2715,10 @@
                               Scilab Team
                             </p>
                             ";
-                        $message = array(
-                            "to" => $to,
-                            "subject" => $subject,
-                            "body" => $body,
-                            "headers" => array(
-                            "From" => "textbook@scilab.in",
-                            "Bcc" => "textbook@scilab.in, lavitha89@gmail.com, bhavani.jalkrish@gmail.com, rush2jrp@gmail.com, prashantsinalkar@gmail.com",
-                            "Content-Type" => "text/html; charset=UTF-8; format=flowed"
-                            )
-                        );
-                        //drupal_mail_send($message);
-                        db_query($query);
+                                             //drupal_mail_send($message);
+			 send_mail("textbook@scilab.in", $to, $subject, $message);
+
+                        db_query($query, array(':preference_id' => $id));
                     } else {
                             }
         }
@@ -2448,13 +2730,14 @@
                     LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
                     WHERE erd.status = 1 AND completed = 0 AND rol.rid = 9
                     ";
-            $result = db_query($query);            
+            $result = db_query($query);
+           ;           
             $headers = array(
              "Book", "Author", "Reviewer Name",
              "Remainders"
             );
             $rows = array();  
-            while ($row = db_fetch_object($result)) {
+            while ($row = $result->fetchObject()) {
               $item  =array(        
                 $row->book,
                 $row->author,
@@ -2469,7 +2752,7 @@
 
         function _tbc_er_reminder_mail($id){
 
-            $query = "
+            /*$query = "
                 SELECT DISTINCT pre.id, erc.review AS id, pre.book, pre.author, pre.edition, usr.uid, erd.time, erd.failed_reminder,
                 erd.failed_review, erc.review, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
                 LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
@@ -2479,23 +2762,45 @@
                 LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
                 WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0 AND  pre.id = {$id}
                 ";
-                $result = db_query($query);
-                $row = db_fetch_object($result);
+                $result = db_query($query);*/
+                $query = db_select('textbook_companion_preference', 'pre');
+                $query->fields('pre', array('id', 'book', 'author', 'edition'));
+                $query->fields('erc', array('review', 'review'));
+                $query->fields('usr', array('uid', 'mail'));
+                $query->fields('erd', array('time', 'failed_reminder', 'failed_review'));
+                $query->fields('erp', array('first_name', 'last_name'));
+                $query->leftJoin('external_review_details', 'erd', 'erd.preference_id = pre.id');
+                $query->leftJoin('users_roles', 'rol', 'erd.uid = rol.uid');
+                $query->leftJoin('users', 'usr', 'usr.uid = erd.uid');
+                $query->leftJoin('external_review_comments', 'erc', 'erc.uid = erd.uid');
+                $query->leftJoin('external_review_profile', 'erp', 'erp.uid = erd.uid');
+                $query->condition('erd.status', 1);
+                $query->condition('rol.rid', 9);
+                $query->condition('erc.review', 0);
+                $query->condition('pre.id',$id);
+                $result = $query->execute();
+                $row = $result->fetchObject();
                 $start_date = new DateTime($row->time);
                 $current_date = new DateTime();
                 $since_start = $start_date->diff($current_date);
                 $diff = ($since_start->format('%a'));
                 if($diff % 15 == 0){
                   /* increment failed to review */
-                    $query = "
+                   /* $query = "
                       UPDATE external_review_details
                       SET failed_review = failed_review + 1
                       WHERE preference_id = {$id}
-                    ";
+                    ";*/
+                    $query = db_update('external_review_details');
+                    $query->fields(array(
+                      'failed_review' => 'failed_review + 1',
+                    ));
+                    $query->condition('preference_id', $id);
+                    $query = $query->execute();
                     /* sending mail */
                     $to = $row->mail;
                     $subject = "External reviewers book delay";
-                    $body = "
+                    $message= "
                     <p>
                       Dear TBC Reviewers,<br><br>
                       This is to inform you that <b>{$row->first_name} {$row->last_name}</b> has failed to review the Book: <b>{$row->book}</b>, Author: <b>{$row->author}</b>, 
@@ -2504,22 +2809,14 @@
                       Scilab Team
                     </p>
                     ";
-                    $message = array(
-                      "to" => "lavitha89@gmail.com, bhavani.jalkrish@gmail.com ",
-                      "subject" => $subject,
-                      "body" => $body,
-                      "headers" => array(
-                      "From" => "textbook@scilab.in",
-                      "Bcc" => "rush2jrp@gmail.com, prashantsinalkar@gmail.com",
-                      "Content-Type" => "text/html; charset=UTF-8; format=flowed"
-                      )
-                    );
-                    //drupal_mail_send($message);
+                                       //drupal_mail_send($message);
+                   send_mail("textbook@scilab.in", $to, $subject, $message);
+  
                     db_query($query);
                 } else{
                     }
         }
-            $query = "
+            /*$query = "
                 SELECT DISTINCT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.failed_reminder,
                         erd.failed_review, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
                         LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
@@ -2529,12 +2826,26 @@
                         LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
                         WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0
                         ";
-                $result = db_query($query);                
+                $result = db_query($query);*/
+                $query = db_select('textbook_companion_preference', 'pre');
+                $query->fields('pre', array('id', 'book', 'author', 'edition'));
+                $query->fields('usr', array('uid', 'mail'));
+                $query->fields('erd', array('failed_reminder', 'failed_review'));
+                $query->fields('erp', array('first_name', 'last_name'));
+                $query->leftJoin('external_review_details', 'erd', 'erd.preference_id = pre.id');
+                $query->leftJoin('users_roles', 'rol', 'erd.uid = rol.uid');
+                $query->leftJoin('users', 'usr', 'usr.uid = erd.uid');
+                $query->leftJoin('external_review_comments', 'erc', 'erc.uid = erd.uid');
+                $query->leftJoin('external_review_profile', 'erp', 'erp.uid = erd.uid');
+                $query->condition('erd.status', 1);
+                $query->condition('rol.rid', 9);
+                $query->condition('erc.review', 0);
+                $result = $query->execute();                
                 $headers = array(
                  "Book", "Author", "Reviewer Name", "Remainders"
                 );
                 $rows = array();  
-                while ($row = db_fetch_object($result)) {
+                while ($row = $result->fetchObject()) {
                 $item  = array(        
                     $row->book,
                     $row->author,
@@ -2547,8 +2858,9 @@
     function _er_reminder_page_all($id=0) {
 
         $page_content = "";
-                $query = "
-                    SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.time, erd.failed_reminder, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
+                /*$query = "
+                    SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.time, erd.failed_reminder, erp.first_name,
+                        erp.last_name, usr.mail FROM textbook_companion_preference pre
                         LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
                         LEFT JOIN users_roles rol ON erd.uid = rol.uid            
                         LEFT JOIN users usr ON usr.uid = erd.uid
@@ -2556,13 +2868,27 @@
                         WHERE erd.status = 1 AND completed = 0 AND rol.rid = 9
                         ";
                
-                $result = db_query($query);
+                $result = db_query($query);*/
+                $query = db_select('textbook_companion_preference', 'pre');
+                $query->fields('pre', array('id', 'book', 'author', 'edition'));
+                $query->fields('usr', array('uid', 'mail'));
+                $query->fields('erd', array('time', 'failed_reminder'));
+                $query->fields('erp', array('first_name', 'last_name'));
+                $query->leftJoin('external_review_details', 'erd', 'erd.preference_id = pre.id');
+                $query->leftJoin('users_roles', 'rol', 'erd.uid = rol.uid');
+                $query->leftJoin('users', 'usr', 'usr.uid = erd.uid');
+                $query->leftJoin('external_review_profile', 'erp', 'erp.uid = erd.uid');
+                $query->condition('erd.status', 1);
+                $query->condition('completed', 0);
+                $query->condition('rol.rid', 9);
+                $result = $query->execute();
+                
                 $headers = array(
                 "Book", "Author", "Reviewer Name",
                 "Remainders"
                 );
                 $rows = array();  
-            while ($row = db_fetch_object($result)) {
+            while ($row = $result->fetchObject()) {
                 $item  =array(        
                     $row->book,
                     $row->author,
@@ -2571,7 +2897,8 @@
                 );
             array_push($rows, $item);
             }
-        $page_content .= theme("table", $headers, $rows);
+        //$page_content .= theme("table", $headers, $rows);
+        $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
         return $page_content;
     }
     
@@ -2579,22 +2906,36 @@
     function _tbc_reviewer_reminder_page_all($id=0, $confirm="") {
 
         $page_content = "";
-                $query = "
+                /*$query = "
                     SELECT DISTINCT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.failed_reminder,
                         erd.failed_review, erp.first_name, erp.last_name, usr.mail FROM textbook_companion_preference pre
-                        LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
-                        LEFT JOIN users_roles rol ON erd.uid = rol.uid            
+                        LEFT JOIN external_review_details erd ON erd.preference_id = pre.id
+                        LEFT JOIN users_roles rol ON erd.uid = rol.uid
                         LEFT JOIN users usr ON usr.uid = erd.uid
                         LEFT JOIN external_review_comments erc ON erc.uid = erd.uid
                         LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
                         WHERE erd.status = 1 AND rol.rid = 9 AND erc.review = 0
-                        ";                    
-                $result = db_query($query);                
+                        ";
+                $result = db_query($query); */
+                $query = db_select('textbook_companion_preference', 'pre');
+                $query->fields('pre', array('id', 'book', 'author', 'edition'));
+                $query->fields('usr', array('uid', 'mail'));
+                $query->fields('erd', array('failed_reminder', 'failed_review'));
+                $query->fields('erp', array('first_name', 'last_name'));
+                $query->leftJoin('external_review_details', 'erd', 'erd.preference_id = pre.id');
+                $query->leftJoin('users_roles', 'rol', 'erd.uid = rol.uid');
+                $query->leftJoin('users', 'usr', 'usr.uid = erd.uid');
+                $query->leftJoin('external_review_comments', 'erc', 'erc.uid = erd.uid');
+                $query->leftJoin('external_review_profile', 'erp', 'erp.uid = erd.uid');
+                $query->condition('erd.status', 1);
+                $query->condition('rol.rid', 9);
+                $query->condition('erc.review', 0);
+                $result = $query->execute();
                 $headers = array(
                  "Book", "Author", "Reviewer Name", "Remainders"
                 );
                 $rows = array();  
-            while ($row = db_fetch_object($result)) {
+            while ($row = $result->fetchObject()) {
                 $item  = array(        
                     $row->book,
                     $row->author,
@@ -2603,19 +2944,86 @@
                 );
             array_push($rows, $item);
             }
-        $page_content .= theme("table", $headers, $rows);      
+        //$page_content .= theme("table", $headers, $rows);
+        $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
       
         return $page_content;
     }
-
+    
+    /*Used to replace drupal_mail*/
+    function send_mail($from, $to, $subject, $message) {
+        $my_module = 'tbc-external-review';
+        $my_mail_token = microtime();
+        $message = array(
+            'id' => $my_module . '_' . $my_mail_token,
+            'to' => $to,
+            'subject' => $subject,
+            'body' => array($message),
+            'headers' => array(
+                'From' => $from, 
+                'Sender' => $from, 
+                'Return-Path' => $from,
+                'Bcc' =>variable_get('tbc_external_review_bcc_emails', NULL),
+            ),
+        );
+        $system = drupal_mail_system($my_module, $my_mail_token);
+        $message = $system->format($message);
+        if ($system->mail($message)) {
+            return TRUE;
+        }
+        else {
+            return FALSE;
+        }
+    }
     function tbc_external_review_init() {
         drupal_add_css(drupal_get_path("module", "tbc_external_review") . "/css/tbc_external_review.css");
-        drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery-1.11.0.min.js");
+        drupal_add_css(drupal_get_path("module", "tbc_external_review") . "/css/pop.css");
+        drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery-1.9.1.js");        
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery-noconfilct.js");
-        drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery.lightbox_me.js");
+       // drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/jquery.lightbox_me.js");
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/tbc_external_review.js");
         drupal_add_js(drupal_get_path("module", "tbc_external_review") . "/js/timer.js");
     }
+ function _ajax_tbc_review_get_chapter_list($preference_id = 0)
+{
  
+  $book_chapters = array('0' => 'Please select...');
 
-    
+  /*$book_chapters_q = db_query("SELECT * FROM {textbook_companion_chapter} WHERE preference_id = %d ORDER BY number ASC", $preference_id);*/
+	$query = db_select('textbook_companion_chapter');
+	$query->fields('textbook_companion_chapter');
+	$query->condition('preference_id', $preference_id);
+	$query->orderBy('number', 'ASC');
+	$book_chapters_q = $query->execute();
+
+  while ($book_chapters_data = $book_chapters_q->fetchObject())
+  {
+    $book_chapters[$book_chapters_data->id] = $book_chapters_data->number . '. ' . $book_chapters_data->name;
+  }
+  
+  return $book_chapters;
+ }
+function _ajax_tbc_review_get_example_list($chapter_id = 0)
+    {
+  $book_examples = array('0' => 'Please select...');
+
+  /*$book_examples_q = db_query("SELECT * FROM {textbook_companion_example} WHERE chapter_id = %d ORDER BY
+    CAST(SUBSTRING_INDEX(number, '.', 1) AS BINARY) ASC,
+    CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(number , '.', 2), '.', -1) AS UNSIGNED) ASC,
+    CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(number , '.', -1), '.', 1) AS UNSIGNED) ASC", $chapter_id);*/
+
+		$query = db_select('textbook_companion_example');
+		$query->fields('textbook_companion_example');
+		$query->condition('chapter_id',  $chapter_id);
+		//$query->orderBy('CAST', 'ASC');
+		//$query->orderBy('CAST', 'ASC');
+		//$query->orderBy('CAST', 'ASC');
+		$book_examples_q = $query->execute();
+
+
+  while ($book_examples_data = $book_examples_q->fetchObject())
+  {
+    $book_examples[$book_examples_data->id] = $book_examples_data->number . ' (' . $book_examples_data->caption . ')';
+  }
+  return $book_examples;
+}

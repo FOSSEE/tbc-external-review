@@ -11,13 +11,15 @@ if (!String.prototype.format) {
     });
   };
 }
+
+(function ($) {
 $(document).ready(function() {
 
     var basePath = Drupal.settings.basePath;
     var modPath = basePath + "tbc_external_review/";
-    
+    $ajax_loader = $("#ajax-loader"); 
     /* for "tbc_external_review/comments" page */
-    $book = $("#edit-book");
+  /*  $book = $("#edit-book");
     $chapter = $("#edit-chapter");
     $chapter_wrapper = $("#edit-chapter-wrapper");
     $example = $("#edit-example");
@@ -55,7 +57,7 @@ $(document).ready(function() {
         $submit.show();
     });
 
-    /* for "tbc_external_review/manage_comments/#some_number" page */
+    /* for "tbc_external_review/manage_comments/#some_number" page 
     $view_comment = $(".view-comment");
     $lightbox_wrapper = $("#lightbox-wrapper");
     $lightbox_inner = $("#lightbox-inner");
@@ -75,14 +77,25 @@ $(document).ready(function() {
         });
         e.preventDefault();
     });
+    */
+$('#btnDialog').click(function(){
 
+	  $('#dialog').dialogBox({
+
+	    //OPTIONS
+	   
+
+	  })
+
+	});
     /* hide/unhide comments */
     $hide_show= $(".hide-show");
     
     $hide_show.click(function(e) {
+     console.log('test');
         var comment_id = $(this).attr("data-comment");
         $t = $(this);
-        $.ajax({
+        ($).ajax({
             url: modPath + "ajax/hide-show/" + comment_id,
             type: "GET",
             dataType: "html",
@@ -106,7 +119,7 @@ $(document).ready(function() {
     $hide_show1.click(function(e) {
         var preference_id = $(this).attr("manages-comment");
         $t = $(this);
-        $.ajax({
+        ($).ajax({
             url: modPath + "ajax/hide-show1/" + preference_id,
             type: "GET",
             dataType: "html",
@@ -211,4 +224,61 @@ $(document).ready(function() {
     $(document).ajaxStop(function() {
         $ajax_loader.hide();
     });
+    
+    
+    //popup for review //
+    $(window).load(function(){
+    jQuery(document).ready(function ($) {
+
+    $(this).on('click', '#popup_window', function (e) {
+    
+        var comment_id = $(this).attr("data-comment");
+       
+        console.log('ok');
+        
+         ($).ajax({
+            url: modPath + "ajax/comment/" + comment_id,
+            type: "GET",
+            dataType: "html",
+            success: function(data) {
+               $("#popup-content").html(data);
+               
+            },
+        });
+        e.preventDefault();
+        $('html').addClass('overlay');
+        $('#example-popup').addClass('visible');
+    });
+        
+        
+
+   
+
+    $(document).keyup(function (e) {
+        if (e.keyCode == 27 && $('html').hasClass('overlay')) {
+            clearPopup();
+        }
+    });
+
+    $('.popup-exit').click(function () {
+        clearPopup();
+
+    });
+
+    $('.popup-overlay').click(function () {
+        clearPopup();
+    });
+
+    function clearPopup() {
+        $('.popup.visible').addClass('transitioning').removeClass('visible');
+        $('html').removeClass('overlay');
+
+        setTimeout(function () {
+            $('.popup').removeClass('transitioning');
+        }, 200);
+    }
+
 });
+});//]]>  
+});
+})(jQuery);

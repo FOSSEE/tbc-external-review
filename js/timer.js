@@ -29,6 +29,7 @@ function Decrement() {
 function countdown() {
     setTimeout('Decrement()',1000);
 }
+(function ($) {
 $(document).ready(function() {
     basePath = Drupal.settings.basePath;
     modPath = basePath + "tbc_external_review/";
@@ -37,4 +38,4 @@ $(document).ready(function() {
     secs = mins * 60 + tmp;
     countdown();
 });
-
+})(jQuery);
