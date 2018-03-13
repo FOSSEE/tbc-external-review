@@ -31,7 +31,7 @@ function tbc_external_review_mail($key, &$message, $params)
 				'body' => t('
 Dear '. $row->name,
 
-'Please find the attached file containing the list of errors found in your uploaded book:'
+'Please find the attached file containing the list of errors found in your uploaded book:'.
 'Book: <b>' . $row->book .
 'Author: <b>'. $row->author .
 
