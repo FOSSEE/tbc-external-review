@@ -1,6 +1,6 @@
 <?php 
 
-
+require_once('tbc_external_review_email.inc');
     date_default_timezone_set('Asia/Calcutta');
     function tbc_external_review_menu() {
         $items = array();
@@ -196,7 +196,7 @@
             'page arguments' => array('tbc_external_review_settings_form'),
             'access arguments' => array('access tbc_administrator_mail_settings'),
             'type' => MENU_NORMAL_ITEM,
-            'file' => 'settings.inc',
+            'file' => 'tbc_external_review_settings.inc',
           );
         return $items;
     }
@@ -367,8 +367,8 @@
                 break;
             default:
                 $output = $number. "th"; 
-                break;                                                              
-        }                                                                           
+                break;
+        }
         return $output;
     }
 
@@ -2116,33 +2116,29 @@
                 WHERE erd.preference_id = :preference_id
             ";
             $args = array(':preference_id' => $preference_id);
-            $result = db_query($query, $args);            
+            $result = db_query($query, $args);
             $row = $result->fetchObject();
             $review_no = suffix($row->review);
-            $from = "textbook@scilab.in";
-            $to = "{$row->mail}";
-            $cc = "textbook@scilab.in";
-            /****need to to be changed****/
-            //$bcc = "mukulrkulkarni@gmail.com, lavitha89@gmail.com, rush2jrp@gmail.com";
-            $bcc = "prashantsinalkar@gmail.com, vvineetaghavri@gmail.com";
-            /*********************************************************/
-            $subject = "Scilab Textbook Companion - {$review_no} Review";
-            $message = "
-                Dear {$row->name}<br><br>
-                Please find the attached file containing the list of errors found in your uploaded book: <br>
-                Book: <b>{$row->book}</b> <br>
-                Author: <b>{$row->author}</b> <br>
-                Review Number: <b>{$review_no}</b> <br><br>
-                Kindly rectify the errors and re-upload the codes on the website.<br>
-                <b>Reply to this mail once the corrections are done.</b> <br><br>
-                <i>Note: The attachment is a comma separated file, which can be viewed using any office software.</i> <br><br>
-                Regards,<br>
-                Scilab.in
-            ";
+
             $file = $review_file;
-            $mail_status = send_mail_attachment($from, $to, $cc, $bcc, $subject, $message, $file);
-            if(!mail_status) {
-                drupal_set_message("An error occurred while sending mail.", "error");
+            /*********************************************************/
+            $params['tbc_review_comment_email_attachment']['preference_id'] = $preference_id;
+            $params['tbc_review_comment_email_attachment']['attachments'] = $review_file;
+            $email_to = $row->mail;
+		    $from = variable_get('tbc_external_review_from_email', '');
+		    $bcc = variable_get('tbc_external_review_bcc_emails', '');
+		    $cc = variable_get('tbc_external_review_cc_emails', '');
+            $params['tbc_review_comment_email_attachment']['headers'] = array(
+			'From' => $from,
+			'MIME-Version' => '1.0',
+			'Content-Type' => 'text/plain; charset=UTF-8; format=flowed; delsp=yes',
+			'Content-Transfer-Encoding' => '8Bit',
+			'X-Mailer' => 'Drupal',
+			'Cc' => $cc,
+			'Bcc' => $bcc
+		);
+            if (!drupal_mail('tbc_external_review', 'tbc_review_comment_email_attachment', $email_to, language_default(), $params, $from, TRUE)) {
+			    drupal_set_message("An error occurred while sending mail.", "error");
                 drupal_goto("tbc_external_review/manage_comments");
             } else {
                 /* toggling  sent column in database */
@@ -2861,8 +2857,8 @@
                 /*$query = "
                     SELECT pre.id AS id, pre.book, pre.author, pre.edition, usr.uid, erd.time, erd.failed_reminder, erp.first_name,
                         erp.last_name, usr.mail FROM textbook_companion_preference pre
-                        LEFT JOIN external_review_details erd ON erd.preference_id = pre.id          
-                        LEFT JOIN users_roles rol ON erd.uid = rol.uid            
+                        LEFT JOIN external_review_details erd ON erd.preference_id = pre.id
+                        LEFT JOIN users_roles rol ON erd.uid = rol.uid
                         LEFT JOIN users usr ON usr.uid = erd.uid
                         LEFT JOIN external_review_profile erp ON erp.uid = erd.uid
                         WHERE erd.status = 1 AND completed = 0 AND rol.rid = 9
@@ -2936,7 +2932,7 @@
                 );
                 $rows = array();  
             while ($row = $result->fetchObject()) {
-                $item  = array(        
+                $item  = array(
                     $row->book,
                     $row->author,
                     $row->first_name ." ". $row->last_name,
