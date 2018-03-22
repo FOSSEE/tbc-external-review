@@ -1,6 +1,5 @@
 <?php 
 
-require_once('tbc_external_review_email.inc');
     date_default_timezone_set('Asia/Calcutta');
     function tbc_external_review_menu() {
         $items = array();
@@ -372,34 +371,42 @@ require_once('tbc_external_review_email.inc');
         return $output;
     }
 
-    function send_mail_attachment($from, $to, $cc, $bcc, $subject, $message, $file) {
+    function send_mail_attachment($from, $to, $cc, $bcc, $subject, $message1, $file) {
         // $file should include path and filename
+
+	$body = $message1;
         $filename = basename($file);
-        $file_size = filesize($file);
-        $content = chunk_split(base64_encode(file_get_contents($file))); 
-        $uid = md5(uniqid(time()));
         $from = str_replace(array("\r", "\n"), '', $from); // to prevent email injection
-        $header = "From: ".$from."\r\n"
-            ."Cc: ".$cc."\r\n"
-            ."Bcc: ".$bcc."\r\n"
-            ."MIME-Version: 1.0\r\n"
-            ."Content-Type: multipart/mixed; boundary=\"".$uid."\"\r\n\r\n"
-            ."This is a multi-part message in MIME format.\r\n" 
-            ."--".$uid."\r\n"
-            ."Content-type: text/html; charset=UTF-8; format=flowed\r\n"
-            ."Content-Transfer-Encoding: 7bit\r\n\r\n"
-            .$message."\r\n\r\n"
-            ."--".$uid."\r\n"
-            ."Content-Type: application/octet-stream; name=\"".$filename."\"\r\n"
-            ."Content-Transfer-Encoding: base64\r\n"
-            ."Content-Disposition: attachment; filename=\"".$filename."\"\r\n\r\n"
-            .$content."\r\n\r\n"
-            ."--".$uid."--"; 
+        $file_size = filesize($file);
+        $handle = fopen($file, "r");
+        $content = fread($handle, $file_size);
+        fclose($handle);
+        $content = chunk_split(base64_encode($content));
+        $uid = md5(uniqid(time()));
+        $filename = basename($file);
+	$eol = PHP_EOL;
+       // Basic headers
+        $header = "From: ".$from." <".$from.">".$eol;
+        $header .= "Reply-To: ".$from.$eol;
+	$header .= "Cc:". $cc.$eol;
+	$header .= "Bcc:". $bcc.$eol;
+        $header .= "MIME-Version: 1.0\r\n";
+        $header .= "Content-Type: multipart/mixed; boundary=\"".$uid."\"";
+       // Put everything else in $message
+        $message = "--".$uid.$eol;
+        $message .= "Content-Type: text/html; charset=ISO-8859-1".$eol;
+        $message .= "Content-Transfer-Encoding: 8bit".$eol.$eol;
+        $message .= $body.$eol;
+        $message .= "--".$uid.$eol;
+        $message .= "Content-Type: application/pdf; name=\"".$filename."\"".$eol;
+        $message .= "Content-Transfer-Encoding: base64".$eol;
+        $message .= "Content-Disposition: attachment; filename=\"".$filename."\"".$eol;
+        $message .= $content.$eol;
+        $message .= "--".$uid."--";
+
         return mail($to, $subject, "", $header);
     }
-
-    /*
-        external reviewer profile form,
+    /*    external reviewer profile form,
         save the data in {external_review_profile}
     */
     function tbc_external_review_profile_form($form, &$form_state) {
@@ -2119,27 +2126,31 @@ require_once('tbc_external_review_email.inc');
             $result = db_query($query, $args);
             $row = $result->fetchObject();
             $review_no = suffix($row->review);
-
-            $file = $review_file;
+	    $file = $review_file;
             /*********************************************************/
-            $params['tbc_review_comment_email_attachment']['preference_id'] = $preference_id;
-            $params['tbc_review_comment_email_attachment']['attachments'] = $review_file;
             $email_to = $row->mail;
-		    $from = variable_get('tbc_external_review_from_email', '');
-		    $bcc = variable_get('tbc_external_review_bcc_emails', '');
-		    $cc = variable_get('tbc_external_review_cc_emails', '');
-            $params['tbc_review_comment_email_attachment']['headers'] = array(
-			'From' => $from,
-			'MIME-Version' => '1.0',
-			'Content-Type' => 'text/plain; charset=UTF-8; format=flowed; delsp=yes',
-			'Content-Transfer-Encoding' => '8Bit',
-			'X-Mailer' => 'Drupal',
-			'Cc' => $cc,
-			'Bcc' => $bcc
-		);
-            if (!drupal_mail('tbc_external_review', 'tbc_review_comment_email_attachment', $email_to, language_default(), $params, $from, TRUE)) {
-			    drupal_set_message("An error occurred while sending mail.", "error");
-                drupal_goto("tbc_external_review/manage_comments");
+	    $from = variable_get('tbc_external_review_from_email', '');
+	    $bcc = variable_get('tbc_external_review_bcc_emails', '');
+	    $cc = variable_get('tbc_external_review_cc_emails', '');
+
+            $subject = "Scilab Textbook Companion - {$review_no} Review";
+            $message = "
+                Dear {$row->name}<br><br>
+                Please find the attached file containing the list of errors found in your uploaded book: <br>
+                Book: <b>{$row->book}</b> <br>
+                Author: <b>{$row->author}</b> <br>
+                Review Number: <b>{$review_no}</b> <br><br>
+                Kindly rectify the errors and re-upload the codes on the website.<br>
+                <b>Reply to this mail once the corrections are done.</b> <br><br>
+                <i>Note: The attachment is a comma separated file, which can be viewed using any office software.</i> <br><br>
+                Regards,<br>
+                Scilab.in
+            ";
+            $file = $review_file;
+            $mail_status = send_mail_attachment($from, $to, $cc, $bcc, $subject, $message, $file);
+	    if(!$mail_status){
+		drupal_set_message("An error occurred while sending mail.", "error");
+		drupal_goto("tbc_external_review/manage_comments");
             } else {
                 /* toggling  sent column in database */
                 /*$query = "
@@ -2153,7 +2164,7 @@ require_once('tbc_external_review_email.inc');
                   'sent' => 1,
                 ));
                 $query->condition('preference_id', $preference_id);
-                $result = $query->execute();
+               // $result = $query->execute();
                 drupal_set_message("Mail sent successfully.", "status");
                 drupal_goto("tbc_external_review/manage_comments");
             }
