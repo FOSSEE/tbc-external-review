@@ -2164,7 +2164,7 @@
                   'sent' => 1,
                 ));
                 $query->condition('preference_id', $preference_id);
-               // $result = $query->execute();
+                $result = $query->execute();
                 drupal_set_message("Mail sent successfully.", "status");
                 drupal_goto("tbc_external_review/manage_comments");
             }
