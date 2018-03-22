@@ -404,7 +404,7 @@
         $message .= $content.$eol;
         $message .= "--".$uid."--";
 
-        return mail($to, $subject, "", $header);
+        return mail($to, $subject, $message, $header);
     }
     /*    external reviewer profile form,
         save the data in {external_review_profile}
