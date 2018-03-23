@@ -2128,7 +2128,7 @@
             $review_no = suffix($row->review);
 	    $file = $review_file;
             /*********************************************************/
-            $email_to = $row->mail;
+            $to = $row->mail;
 	    $from = variable_get('tbc_external_review_from_email', '');
 	    $bcc = variable_get('tbc_external_review_bcc_emails', '');
 	    $cc = variable_get('tbc_external_review_cc_emails', '');
