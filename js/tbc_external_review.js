@@ -226,11 +226,11 @@ $('#btnDialog').click(function(){
     });
     
     
-    //popup for review //
+    //scilab-popup for review //
     $(window).load(function(){
     jQuery(document).ready(function ($) {
 
-    $(this).on('click', '#popup_window', function (e) {
+    $(this).on('click', '#scilab-popup_window', function (e) {
     
         var comment_id = $(this).attr("data-comment");
        
@@ -241,13 +241,13 @@ $('#btnDialog').click(function(){
             type: "GET",
             dataType: "html",
             success: function(data) {
-               $("#popup-content").html(data);
+               $("#scilab-popup-content").html(data);
                
             },
         });
         e.preventDefault();
         $('html').addClass('overlay');
-        $('#example-popup').addClass('visible');
+        $('#example-scilab-popup').addClass('visible');
     });
         
         
@@ -260,21 +260,21 @@ $('#btnDialog').click(function(){
         }
     });
 
-    $('.popup-exit').click(function () {
+    $('.scilab-popup-exit').click(function () {
         clearPopup();
 
     });
 
-    $('.popup-overlay').click(function () {
+    $('.scilab-popup-overlay').click(function () {
         clearPopup();
     });
 
     function clearPopup() {
-        $('.popup.visible').addClass('transitioning').removeClass('visible');
+        $('.scilab-popup.visible').addClass('transitioning').removeClass('visible');
         $('html').removeClass('overlay');
 
         setTimeout(function () {
-            $('.popup').removeClass('transitioning');
+            $('.scilab-popup').removeClass('transitioning');
         }, 200);
     }
 
