@@ -2233,7 +2233,7 @@
             INSERT INTO {external_review_details}
             (uid, preference_id, review, status, completed, published, sent)
             VALUES
-            (:uid, {:preference_id},{:review}, :status, :completed, :published, :sent)
+            (:uid, :preference_id, :review, :status, :completed, :published, :sent)
         ";
         $args = array(':uid' => 0,
         	     ':preference_id' => $preference_id,
