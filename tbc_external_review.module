@@ -819,7 +819,7 @@
                    //l("View", "", $options),
                      l("View", "", array(  "fragment" => " ",
                         "external" => TRUE,"attributes" => array(                      
-                        "id" => "popup_window",
+                        "id" => "scilab-popup_window",
                         "data-comment" => "{$row->id}",
                     ))),
                 );
@@ -830,14 +830,14 @@
            
             //$page_content .= "<div id='lightbox-form' style='display:none'>";
             //$page_content .= "<div id='lightbox-inner'></div></div> ";
-            $page_content .= "<div id='example-popup' class='popup'>
-                                    <div class='popup-body'>
-                                        <span class='popup-exit'></span>
-                                            <div id = 'popup-content' class='popup-content'>
+            $page_content .= "<div id='example-scilab-popup' class='scilab-popup'>
+                                    <div class='scilab-popup-body'>
+                                        <span class='scilab-popup-exit'></span>
+                                            <div id = 'scilab-popup-content' class='scilab-popup-content'>
                                             </div>
                                     </div>
                             </div>";
-            $page_content .= "<div class='popup-overlay'></div>";
+            $page_content .= "<div class='scilab-popup-overlay'></div>";
             
             
         } else {
@@ -1931,7 +1931,7 @@
                        //l("View", "", $view_options),
                          l("View", "", array(  "fragment" => " ",
                         "external" => TRUE,"attributes" => array(                      
-                        "id" => "popup_window",
+                        "id" => "scilab-popup_window",
                         "data-comment" => "{$row->id}",
                     ))),
                        
@@ -1963,14 +1963,14 @@
             }
             //$page_content .= theme("table", $headers, $rows);
              $page_content .= theme('table', array('header' => $headers, 'rows' => $rows ));
-             $page_content .= "<div id='example-popup' class='popup'>
-                                    <div class='popup-body'>
-                                        <span class='popup-exit'></span>
-                                            <div id = 'popup-content' class='popup-content'>
+             $page_content .= "<div id='example-scilab-popup' class='scilab-popup'>
+                                    <div class='scilab-popup-body'>
+                                        <span class='scilab-popup-exit'></span>
+                                            <div id = 'scilab-popup-content' class='scilab-popup-content'>
                                             </div>
                                     </div>
                             </div>";
-            $page_content .= "<div class='popup-overlay'></div>";
+            $page_content .= "<div class='scilab-popup-overlay'></div>";
         } else {
             /* displaying the list of books */
             $query = "
@@ -2233,7 +2233,7 @@
             INSERT INTO {external_review_details}
             (uid, preference_id, review, status, completed, published, sent)
             VALUES
-            (:uid, {:preference_id},{:review}, :status, :completed, :published, :sent)
+            (:uid, :preference_id, :review, :status, :completed, :published, :sent)
         ";
         $args = array(':uid' => 0,
         	     ':preference_id' => $preference_id,
