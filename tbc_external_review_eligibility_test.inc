@@ -6,7 +6,7 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
         
         $query = "
             SELECT * FROM external_review_eligibility_answers
-            WHERE uid = {:uid} AND question_id = {:question_id} AND reset = 0 
+            WHERE uid = :uid AND question_id = :question_id AND reset = 0 
         ";
         $result = db_query($query,array(':uid'=>$user->uid, ':question_id'=> $question_id));
         $row = $result->fetchObject();
@@ -127,7 +127,7 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
         /* checking the timer and status of current user */
         $query = "
             SELECT * FROM external_review_eligibility_timings
-            WHERE uid = {:uid}
+            WHERE uid = :uid
         ";
         $result = db_query($query,array(':uid'=> $user->uid));
         $num_rows = $result->rowCount(); //either 1 or 0
@@ -148,7 +148,7 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
         $query = "
             SELECT id FROM external_review_eligibility_answers
             WHERE 
-            uid =  {:uid} AND question_id = {:question_id}
+            uid =  :uid AND question_id = :question_id
         ";
         $result = db_query($query,array(':uid'=> $user->uid,':question_id'=> $v['question_id'] ));
         $num_rows = $result->rowCount();
@@ -210,10 +210,10 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
                     teo, mit, agl
                 )
                 VALUES
-                (  {:uid}, {:question_id}, 
-                   {:ncf}, {:eit}, {:sua},
-                   {:sfu}, {:aci}, {:auu},
-                   {:teo}, {:mit}, {:agl}
+                (  :uid, :question_id, 
+                   :ncf, :eit, :sua,
+                   :sfu, :aci, :auu,
+                   :teo, :mit, :agl
                    
                 )
             ";
@@ -260,7 +260,7 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
             /* checking the timer and status of current user */
             $query = "
                 SELECT * FROM external_review_eligibility_timings
-                WHERE uid = {:uid}
+                WHERE uid = :uid
             ";
             $result = db_query($query, array(':uid'=> $user->uid ));
             $num_rows = $result->rowCount(); //either 1 or 0
@@ -284,7 +284,7 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
                     INSERT INTO external_review_eligibility_timings
                     (uid, status, start_date)
                     VALUES
-                    ({:uid}, 1, {:current_date})
+                    (:uid, 1, :current_date)
                 ";
                 $result = db_query($query, array(':uid'=> $user->uid, ':current_date' => $current_date ));
             }
@@ -292,7 +292,7 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
             /* getting the questions */
             $query = "
                 SELECT * FROM external_review_eligibility_questions
-                WHERE id = {:question_id}
+                WHERE id = :question_id
             ";
             $result = db_query($query, array(':question_id'=>$question_id));
             $row = $result->fetchObject();
@@ -322,7 +322,7 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
             $query = "
                 UPDATE external_review_eligibility_timings
                 SET status = 2
-                WHERE uid = {:uid}
+                WHERE uid = :uid
             ";
             $result = db_query($query, array(':uid'=> $user->uid));
             drupal_set_message("Eligibility Test completed successfully. We will get back to you soon.", "status");
@@ -443,7 +443,7 @@ function tbc_external_review_eligibility_test_form($form, $form_state, $question
         $query = "
         UPDATE external_review_eligibility_answers
                 SET reset = 1
-                WHERE uid = {:uid}
+                WHERE uid = :uid
        ";
        $result = db_query($query, array(':uid'=> $user_id));
       
